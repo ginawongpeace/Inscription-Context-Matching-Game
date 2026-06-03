@@ -13,22 +13,22 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@400;500;700&display=swap" rel="stylesheet">
     
+    <!-- 引入外部圖示與庫 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- 引入 SweetAlert2 用於精美的提示框 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     
     <style>
         :root {
-            /* 定義字型順序變數：優先使用源泉圓體，其次昭源圓體，最後是微軟正黑體 */
+            /* 定義字型順序變數 */
             --main-font: 'GenSenRounded TW', 'Chiron GoRound TC', 'Microsoft JhengHei', sans-serif;
         }
 
         body {
-            /* 將字型套用到整個網頁 */
             font-family: var(--main-font);
             font-optical-sizing: auto;
             background-color: #f8fafc; /* Tailwind slate-50 */
-            user-select: none; /* 防止遊戲中意外選取文字 */
+            user-select: none;
             overflow-x: hidden;
         }
 
@@ -42,40 +42,38 @@
             align-items: center;
             font-size: 1.5rem;
             font-weight: 500;
-            color: #94a3b8; /* 預設文字顏色，較淡 (slate-400) */
+            color: #94a3b8;
             background-color: transparent;
-            border-radius: 0.375rem; /* rounded-md */
+            border-radius: 0.375rem;
         }
         
         @media (min-width: 768px) {
-            .grid-cell {
-                font-size: 2rem;
-            }
+            .grid-cell { font-size: 2rem; }
         }
 
         .grid-cell:hover:not(.disabled):not(.matched):not(.selected-idiom) {
-            background-color: #f1f5f9; /* slate-100 */
-            color: #475569; /* slate-600 */
+            background-color: #f1f5f9;
+            color: #475569;
         }
 
-        /* 點錯的干擾字 (字變暗) */
+        /* 點錯的干擾字 */
         .grid-cell.disabled {
-            color: #cbd5e1; /* slate-300 */
+            color: #cbd5e1;
             cursor: not-allowed;
             background-color: transparent;
         }
         
-        /* 叉叉圖示 (會動態移除) */
+        /* 叉叉圖示 */
         .grid-cell.show-cross::after {
-            content: '\f00d'; /* FontAwesome times (X) */
+            content: '\f00d';
             font-family: 'Font Awesome 6 Free';
             font-weight: 900;
             position: absolute;
-            color: rgba(239, 68, 68, 0.7); /* red-500 with opacity */
+            color: rgba(239, 68, 68, 0.7);
             font-size: 1.2em;
         }
 
-        /* 被選中的題辭 (整組發亮，套用動態變數顏色) */
+        /* 選中的題辭 */
         .grid-cell.selected-idiom {
             color: var(--idiom-text);
             font-weight: 700;
@@ -85,16 +83,16 @@
             z-index: 10;
         }
 
-        /* 當有題辭被選中時，方陣內其他非選中的文字全部淡化 */
+        /* 視覺聚焦：其他非選中文字淡化 */
         #grid-board.has-active-selection .grid-cell:not(.selected-idiom) {
             opacity: 0.25;
         }
 
-        /* 已經配對成功的題辭 (套用動態變數顏色) */
+        /* 成功配對的題辭 */
         .grid-cell.matched {
             color: var(--idiom-text);
             font-weight: 700;
-            cursor: default;
+            cursor: pointer; /* 改為 pointer，因為現在點擊可以報讀 */
             border: 2px solid var(--idiom-border);
             background-color: var(--idiom-bg);
         }
@@ -102,8 +100,8 @@
         /* 右側情境按鈕樣式 */
         .situation-btn {
             transition: all 0.2s;
-            border: 2px dashed #94a3b8; /* slate-400 */
-            color: #64748b; /* slate-500 */
+            border: 2px dashed #94a3b8;
+            color: #64748b;
             background-color: white;
             font-weight: 700;
             font-size: 1.25rem;
@@ -116,9 +114,9 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
-        /* 當有題辭被選中時，提示可以點擊情境 */
+        /* 提示可以點擊情境的動畫 */
         .situation-btn.ready-to-pair:not(:disabled) {
-            border-color: #3b82f6; /* blue-500 */
+            border-color: #3b82f6;
             color: #3b82f6;
             border-style: solid;
             animation: pulse-border 1.5s infinite;
@@ -130,7 +128,7 @@
             100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
         }
 
-        /* 情境配對成功 (套用動態變數顏色) */
+        /* 情境配對成功 */
         .situation-btn.matched, .situation-btn.temp-matched {
             border-color: var(--idiom-border) !important;
             border-style: solid !important;
@@ -145,7 +143,7 @@
         }
 
         .situation-btn.matched::after {
-            content: '\f00c'; /* FontAwesome check */
+            content: '\f00c';
             font-family: 'Font Awesome 6 Free';
             font-weight: 900;
             position: absolute;
@@ -164,33 +162,36 @@
             75% { transform: scale(1.2); }
             100% { transform: scale(1); }
         }
-        .heart-icon {
-            color: #ef4444; /* red-500 */
-            display: inline-block;
-        }
-        .heart-lost {
-            color: #cbd5e1; /* slate-300 */
-            transition: color 0.5s ease;
-        }
-        .heart-beat-anim {
-            animation: heartbeat 0.5s ease-in-out;
+        .heart-icon { color: #ef4444; display: inline-block; }
+        .heart-lost { color: #cbd5e1; transition: color 0.5s ease; }
+        .heart-beat-anim { animation: heartbeat 0.5s ease-in-out; }
+
+        /* 頁尾資訊版權宣告樣式 */
+        .footer-credit {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            text-align: center;
+            margin-top: auto; /* 將其推至底部 */
+            padding: 1.5rem 1rem 1rem 1rem;
+            width: 100%;
         }
 
-        /* 版面配置 */
-        #game-container {
-            display: none; /* 初始隱藏，設定完成後顯示 */
+        /* 初始隱藏遊戲與複習畫面 */
+        #game-container, #review-container { display: none; }
+        
+        /* 複習列表題辭發音指標 */
+        .review-idiom {
+            cursor: pointer;
+            transition: opacity 0.2s;
         }
-        #review-container {
-            display: none;
+        .review-idiom:hover {
+            opacity: 0.7;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col relative">
 
-    <!-- 背景音樂播放器 - 直接連結到您 GitHub 上發布的檔案 -->
-    <audio id="bgm-player" src="https://ginawongpeace.github.io/Inscription-Context-Matching-Game/soaringbgm.mp3" loop preload="auto"></audio>
-
-    <!-- 首頁專用：帶有文字提示的開關按鈕 -->
+    <!-- 首頁專用：帶有文字提示的音樂開關按鈕 -->
     <div class="absolute top-4 right-4 z-50">
         <button id="btn-toggle-bgm-home" class="btn-toggle-bgm bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-md transition-colors flex items-center gap-2 border border-slate-200 hover:bg-slate-50" title="點擊開關音樂">
             <i class="fa-solid fa-volume-xmark bgm-icon text-slate-400 text-lg"></i>
@@ -199,8 +200,8 @@
     </div>
 
     <!-- 首頁設定畫面 -->
-    <div id="start-screen" class="flex-grow flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center mt-10">
+    <div id="start-screen" class="flex-grow flex flex-col items-center justify-center p-4 w-full">
+        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center mt-10 mb-8">
             <h1 class="text-3xl font-bold text-slate-800 mb-6">題辭與情境配對</h1>
             <p class="text-slate-600 mb-8">從左側方陣中找出正確的題辭，並與右側的情境配對！</p>
             
@@ -210,13 +211,14 @@
                        class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg text-slate-700">
             </div>
 
+            <!-- 包含愛心圖示與難易度標示的滑桿區塊 -->
             <div class="mb-8 text-left">
                 <label for="heart-setting" class="block text-lg font-medium text-slate-700 mb-2">
-                    設定生命值 (愛心數量): <span id="heart-display" class="font-bold text-red-500">3</span>
+                    設定生命值 (愛心數量): <span id="heart-display" class="font-bold text-red-500">3</span> <i class="fa-solid fa-heart text-red-500 text-sm"></i>
                 </label>
                 <input type="range" id="heart-setting" min="1" max="5" value="3" 
                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-red-500">
-                <div class="flex justify-between text-xs text-slate-400 px-1 mt-2">
+                <div class="flex justify-between text-xs text-slate-400 px-1 mt-2 font-medium">
                     <span>1 (困難)</span>
                     <span>2</span>
                     <span>3 (適中)</span>
@@ -229,15 +231,20 @@
                 開始遊戲 <i class="fa-solid fa-play ml-2"></i>
             </button>
         </div>
+        
+        <!-- 首頁頁尾版權宣告 -->
+        <div class="footer-credit">
+            創作者：Gina Wang | 參考資料：翰林電子書語文常識二--玩轉知識--慶賀題辭捉迷藏 (Wordwall)
+        </div>
     </div>
 
     <!-- 遊戲主畫面 -->
-    <div id="game-container" class="flex-grow flex-col">
+    <div id="game-container" class="flex-grow flex-col relative">
         <!-- 頂部資訊列 -->
         <div class="bg-white shadow-sm p-4 flex justify-between items-center z-10 relative">
             <div class="text-lg font-bold text-slate-700 flex items-center gap-4">
                 <span>進度: <span id="progress-text" class="text-blue-600">0/8</span></span>
-                <!-- 遊戲頁專用：帶有文字提示的開關按鈕 -->
+                <!-- 遊戲頁專用的音樂按鈕 -->
                 <button id="btn-toggle-bgm" class="btn-toggle-bgm flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-200 shadow-sm" title="點擊開關音樂">
                     <i class="fa-solid fa-volume-xmark bgm-icon text-slate-400"></i>
                     <span class="bgm-text font-bold text-slate-400 text-sm tracking-wide">音樂：關</span>
@@ -252,7 +259,7 @@
         </div>
 
         <!-- 遊戲主要內容區 (左右分欄) -->
-        <div class="flex-grow flex flex-col lg:flex-row p-4 gap-6 max-w-7xl mx-auto w-full items-center justify-center">
+        <div class="flex-grow flex flex-col lg:flex-row p-4 gap-6 max-w-7xl mx-auto w-full items-center justify-center mb-10">
             <!-- 左側：8x8 文字方陣 -->
             <div class="w-full lg:w-1/2 max-w-lg aspect-square">
                 <div id="grid-board" class="w-full h-full grid grid-cols-8 grid-rows-8 gap-1 bg-white p-2 rounded-xl shadow-lg border border-slate-200">
@@ -263,7 +270,9 @@
             <!-- 右側：情境選項 -->
             <div class="w-full lg:w-1/2 max-w-lg lg:max-w-md">
                 <div class="bg-white p-4 rounded-xl shadow-lg border border-slate-200 h-full flex flex-col justify-center">
-                    <h2 class="text-center text-slate-500 mb-4 text-sm font-bold tracking-wider">點選左方題辭後，配對下方情境</h2>
+                    <h2 class="text-center text-slate-500 mb-4 text-sm font-bold tracking-wider">點選左方題辭後，配對下方情境<br>
+                    <span class="text-xs font-normal text-slate-400">💡 點選選中或已配對的題辭，會朗讀正確讀音</span>
+                    </h2>
                     <div id="situations-board" class="grid grid-cols-2 gap-4">
                         <!-- 8 個情境按鈕將由 JS 動態生成 -->
                     </div>
@@ -276,15 +285,21 @@
             <i class="fa-regular fa-clock text-blue-500"></i>
             <span id="game-timer">00:00</span>
         </div>
+
+        <!-- 遊戲頁尾版權宣告 -->
+        <div class="footer-credit">
+            創作者：Gina Wang | 參考資料：翰林電子書語文常識二--玩轉知識--慶賀題辭捉迷藏 (Wordwall)
+        </div>
     </div>
 
     <!-- 遊戲結束回顧畫面 -->
     <div id="review-container" class="flex-grow flex-col bg-slate-50">
-        <div class="max-w-4xl mx-auto w-full p-6 text-center mt-10">
+        <div class="max-w-4xl mx-auto w-full p-6 text-center mt-10 mb-8 flex-grow">
             <div class="mb-8">
                 <i class="fa-solid fa-trophy text-6xl text-yellow-400 mb-4"></i>
                 <h1 class="text-4xl font-bold text-slate-800 mb-2">恭喜完成挑戰！</h1>
-                <p class="text-slate-600 text-lg">以下是本次測驗的題辭總複習：</p>
+                <p class="text-slate-600 text-lg">以下是本次測驗的題辭總複習：<br>
+                <span class="text-sm font-normal text-slate-400">💡 點擊題辭即可聆聽語音報讀</span></p>
             </div>
 
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 text-left">
@@ -306,9 +321,14 @@
                 </button>
             </div>
         </div>
+
+        <!-- 複習頁尾版權宣告 -->
+        <div class="footer-credit">
+            創作者：Gina Wang | 參考資料：翰林電子書語文常識二--玩轉知識--慶賀題辭捉迷藏 (Wordwall)
+        </div>
     </div>
 
-    <!-- 排行榜畫面 -->
+    <!-- 排行榜畫面 (Modal) -->
     <div id="leaderboard-container" class="flex-grow flex-col bg-slate-50 fixed inset-0 z-50 overflow-y-auto" style="display: none;">
         <div class="max-w-3xl mx-auto w-full p-6 text-center mt-10">
             <div class="mb-6 flex justify-between items-center">
@@ -342,26 +362,26 @@
     </div>
 
     <script>
-        // 題庫資料 (成語與情境配對)
+        // 題庫資料 (成語與情境配對，包含拼音修正)
         const database = [
             { idiom: "百年好合", situation: "結婚" },
-            { idiom: "鳳凰于飛", situation: "結婚" },
+            { idiom: "鳳凰于飛", situation: "結婚", pronunciation: "鳳凰於飛" },
             { idiom: "弄璋誌喜", situation: "生子" },
-            { idiom: "天賜麟兒", situation: "生子" },
+            { idiom: "天賜麟兒", situation: "生子", pronunciation: "天四麟兒" }, // 使用同音字確保發音正確
             { idiom: "弄瓦誌喜", situation: "生女" },
-            { idiom: "松柏長青", situation: "男壽" },
-            { idiom: "春草長春", situation: "女壽" },
+            { idiom: "松柏長青", situation: "男壽", pronunciation: "松柏常青" },
+            { idiom: "春草長春", situation: "女壽", pronunciation: "春草常春" },
             { idiom: "鐵畫銀鉤", situation: "書法比賽" },
             { idiom: "玉潤珠圓", situation: "音樂比賽" },
             { idiom: "高朋滿座", situation: "餐廳開業" },
-            { idiom: "桑梓之光", situation: "當選" },
+            { idiom: "桑梓之光", situation: "當選", pronunciation: "桑紫之光" },
             { idiom: "前程似錦", situation: "畢業" },
             { idiom: "青雲有志", situation: "畢業" },
             { idiom: "鵬程萬里", situation: "畢業" },
             { idiom: "春風化雨", situation: "校慶" }
         ];
 
-        // 8組不同的顏色主題，用於成語及情境標籤
+        // 8組不同的顏色主題
         const colorPalettes = [
             { text: '#ef4444', bg: '#fef2f2', border: '#fca5a5' }, // 紅
             { text: '#ea580c', bg: '#fff7ed', border: '#fdba74' }, // 橘
@@ -373,7 +393,6 @@
             { text: '#ec4899', bg: '#fdf2f8', border: '#fbcfe8' }  // 粉
         ];
 
-        // 隨機干擾字庫 (從題庫中提取所有的字)
         const fillerChars = "百年好合鳳凰于飛結婚弄璋誌喜天賜麟兒生子弄瓦誌喜生女松柏長青男壽春草長春女壽鐵畫銀鉤書法比賽玉潤珠圓音樂比賽高朋滿座餐廳開業桑梓之光當選前程似錦青雲有志鵬程萬里畢業春風化雨校慶";
 
         const GRID_SIZE = 8;
@@ -381,33 +400,71 @@
         
         let maxHearts = 3;
         let currentHearts = 3;
-        let currentQuestions = []; // 本局選出的 8 題
-        let currentSituations = []; // 本局的獨特情境
-        let gridData = []; // 8x8 方陣的資料結構
-        let gridCells = []; // 對應的 DOM 元素陣列 (一維)
+        let currentQuestions = [];
+        let currentSituations = [];
+        let gridData = [];
+        let gridCells = [];
+        let currentlySelectedIdiomId = null;
+        let matchedCount = 0;
+        let playerName = "";
         
-        // 遊戲狀態
-        let currentlySelectedIdiomId = null; // 當前在左側選中的題辭 ID
-        let matchedCount = 0; // 已成功配對的數量
-        let playerName = ""; // 挑戰者姓名
-        
-        // 計時器變數
         let startTime = 0;
         let timerInterval = null;
         let timeElapsedInSeconds = 0;
 
-        // BGM 變數與控制 (全面優化版)
-        const bgmPlayer = document.getElementById('bgm-player');
-        bgmPlayer.volume = 0.3;
-        let userWantsBgm = true; // 記錄使用者的意願，預設為想聽音樂
+        // BGM 變數與控制 (Tone.js 優美鋼琴和弦輪旋曲)
+        let isBgmEnabled = true;
+        let bgmSynth = null;
+        let bgmSequence = null;
+        let isBgmPlaying = false;
 
-        // 這個函數會嚴格根據播放器的「真實狀態」來更新按鈕畫面，不會再騙人
+        async function initToneBGM() {
+            if (bgmSynth) return;
+            
+            // 使用 PolySynth 搭配較柔和的設定，模擬溫潤的電鋼琴/木琴
+            bgmSynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "sine" },
+                envelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 1.5 }
+            }).toDestination();
+            
+            bgmSynth.volume.value = -18; // 調小音量使其成為輕柔的背景音
+            
+            // 輕快且不單調的 4 小節和弦輪旋曲 (C -> G -> Am -> F)
+            const melody = [
+                { time: "0:0:0", note: ["C4", "E4", "G4"] }, // C Chord
+                { time: "0:1:0", note: "E5" },
+                { time: "0:2:0", note: "C5" },
+                { time: "0:3:0", note: "G4" },
+                { time: "1:0:0", note: ["G3", "B3", "D4"] }, // G Chord
+                { time: "1:1:0", note: "D5" },
+                { time: "1:2:0", note: "B4" },
+                { time: "1:3:0", note: "G4" },
+                { time: "2:0:0", note: ["A3", "C4", "E4"] }, // Am Chord
+                { time: "2:1:0", note: "C5" },
+                { time: "2:2:0", note: "A4" },
+                { time: "2:3:0", note: "E4" },
+                { time: "3:0:0", note: ["F3", "A3", "C4"] }, // F Chord
+                { time: "3:1:0", note: "A4" },
+                { time: "3:2:0", note: "F4" },
+                { time: "3:3:0", note: "C4" }
+            ];
+
+            bgmSequence = new Tone.Part((time, value) => {
+                bgmSynth.triggerAttackRelease(value.note, "8n", time);
+            }, melody);
+            
+            bgmSequence.loop = true;
+            bgmSequence.loopEnd = "4m"; // 4小節循環
+            Tone.Transport.bpm.value = 100; // 輕快的速度
+        }
+
+        // 更新音樂 UI 狀態
         function updateBgmUI(isPlaying) {
+            isBgmPlaying = isPlaying;
             const icons = document.querySelectorAll('.bgm-icon');
             const texts = document.querySelectorAll('.bgm-text');
 
             if (isPlaying) {
-                // 音樂正在播放：顯示藍色、開啟文字、音符圖標
                 icons.forEach(i => i.className = 'fa-solid fa-music bgm-icon text-blue-500');
                 texts.forEach(t => {
                     t.textContent = '音樂：開';
@@ -415,7 +472,6 @@
                     t.classList.add('text-blue-500');
                 });
             } else {
-                // 音樂暫停中：顯示灰色、關閉文字、靜音圖標
                 icons.forEach(i => i.className = 'fa-solid fa-volume-xmark bgm-icon text-slate-400');
                 texts.forEach(t => {
                     t.textContent = '音樂：關';
@@ -425,52 +481,29 @@
             }
         }
 
-        // 讓按鈕的畫面「永遠」綁定真實的音樂狀態
-        bgmPlayer.addEventListener('play', () => updateBgmUI(true));
-        bgmPlayer.addEventListener('pause', () => updateBgmUI(false));
-
-        // 綁定兩顆開關音樂按鈕的點擊事件
-        document.querySelectorAll('.btn-toggle-bgm').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation(); // 防止點擊按鈕時觸發背景的全域自動播放
-                if (bgmPlayer.paused) {
-                    userWantsBgm = true;
-                    bgmPlayer.play().catch(error => {
-                        // 如果音樂檔案真的有問題，會跳出土司提示告訴老師
-                        Swal.fire({
-                            toast: true, position: 'top', icon: 'error', 
-                            title: '無法播放音樂', text: '請確認音樂檔案已上傳至 GitHub',
-                            showConfirmButton: false, timer: 4000
-                        });
-                        console.warn("播放失敗:", error);
-                    });
-                } else {
-                    userWantsBgm = false;
-                    bgmPlayer.pause();
-                }
-            });
-        });
-
-        // 全域自動播放機制 (只要使用者點擊畫面的任何地方，就嘗試突破瀏覽器封鎖)
-        function tryAutoPlayBGM() {
-            if (userWantsBgm && bgmPlayer.paused) {
-                bgmPlayer.play().then(() => {
-                    // 只要成功播放一次，就不用再到處監聽點擊了
-                    ['click', 'touchstart', 'keydown'].forEach(evt => {
-                        document.removeEventListener(evt, tryAutoPlayBGM);
-                    });
-                }).catch(() => {
-                    // 如果還是被瀏覽器擋，就繼續安靜等待下一次點擊
-                });
+        // 開關音樂邏輯
+        async function toggleBGM() {
+            isBgmEnabled = !isBgmEnabled;
+            if (isBgmEnabled) {
+                await Tone.start();
+                await initToneBGM();
+                Tone.Transport.start();
+                bgmSequence.start(0);
+                updateBgmUI(true);
+            } else {
+                Tone.Transport.pause();
+                updateBgmUI(false);
             }
         }
 
-        // 綁定全域監聽器
-        ['click', 'touchstart', 'keydown'].forEach(evt => {
-            document.addEventListener(evt, tryAutoPlayBGM);
+        document.querySelectorAll('.btn-toggle-bgm').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleBGM();
+            });
         });
-        
-        // 音效系統 (用來播放選對、選錯的音效)
+
+        // 原生 AudioContext 用於答對答錯音效
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
         function playTone(freq, type, duration) {
@@ -497,7 +530,23 @@
             });
         }
 
-        // 初始化設定頁面滑桿
+        // 語音報讀功能
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                // 如果正在播放其他語音，先停止
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-TW'; // 設定為台灣中文
+                utterance.rate = 0.9; // 稍微放慢語速，聽得更清楚
+                
+                window.speechSynthesis.speak(utterance);
+            } else {
+                console.warn("您的瀏覽器不支援語音合成功能 (Web Speech API)。");
+            }
+        }
+
+        // 設定愛心滑桿
         const heartSetting = document.getElementById('heart-setting');
         const heartDisplay = document.getElementById('heart-display');
         heartSetting.addEventListener('input', (e) => {
@@ -505,27 +554,40 @@
             maxHearts = parseInt(e.target.value);
         });
 
-        // 綁定「開始遊戲」按鈕事件
-        document.getElementById('btn-start').addEventListener('click', (e) => {
+        // 綁定「開始遊戲」按鈕
+        document.getElementById('btn-start').addEventListener('click', async () => {
             playerName = document.getElementById('player-name').value.trim();
             if (!playerName) {
                 Swal.fire({ icon: 'warning', title: '請輸入姓名', text: '請輸入挑戰者姓名才能開始遊戲！' });
                 return;
             }
 
-            // 在點擊開始遊戲的瞬間，必定會觸發一次 tryAutoPlayBGM (因為事件冒泡)
-            startGame(); // 執行遊戲初始化
-            // 隱藏首頁的音樂按鈕
-            document.getElementById('btn-toggle-bgm-home').style.display = 'none';
+            // 確保音樂啟動
+            if (isBgmEnabled && !isBgmPlaying) {
+                await Tone.start();
+                await initToneBGM();
+                Tone.Transport.start();
+                bgmSequence.start(0);
+                updateBgmUI(true);
+            }
+
+            startGame();
+            document.getElementById('btn-toggle-bgm-home').parentElement.style.display = 'none';
         });
         
         document.getElementById('btn-restart').addEventListener('click', () => {
             document.getElementById('review-container').style.display = 'none';
             document.getElementById('start-screen').style.display = 'flex';
-            document.getElementById('btn-toggle-bgm-home').style.display = 'flex'; // 恢復首頁按鈕
+            document.getElementById('btn-toggle-bgm-home').parentElement.style.display = 'block';
+            
+            // 重置 Tone.js 音樂狀態
+            if (isBgmEnabled && !isBgmPlaying) {
+                Tone.Transport.start();
+                updateBgmUI(true);
+            }
         });
 
-        // 排行榜相關事件
+        // 排行榜事件
         document.getElementById('btn-show-leaderboard').addEventListener('click', showLeaderboard);
         document.getElementById('btn-close-leaderboard').addEventListener('click', () => {
             document.getElementById('leaderboard-container').style.display = 'none';
@@ -533,7 +595,6 @@
         document.getElementById('btn-clear-leaderboard').addEventListener('click', clearLeaderboard);
 
         function startGame() {
-            // 初始化變數
             currentHearts = maxHearts;
             matchedCount = 0;
             currentlySelectedIdiomId = null;
@@ -541,23 +602,17 @@
             updateTimerDisplay();
             document.getElementById('grid-board').classList.remove('has-active-selection');
             
-            // 抽選 8 題不重複的題目
             selectRandomQuestions();
-            
-            // 建立 8x8 方陣資料
             generateGridData();
             
-            // 渲染 UI
             renderHearts();
             renderGrid();
             renderSituations();
             updateProgress();
             
-            // 切換畫面
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('game-container').style.display = 'flex';
 
-            // 開始計時
             startTimer();
         }
 
@@ -573,10 +628,9 @@
         function stopTimer() {
             clearInterval(timerInterval);
             timerInterval = null;
-            if (userWantsBgm) {
-                bgmPlayer.pause(); // 遊戲結束暫停音樂
-                // 暫停後 UI 會自動更新為關閉，但為了讓使用者知道可以重開，設定 userWantsBgm 為 false
-                userWantsBgm = false; 
+            if (isBgmPlaying) {
+                Tone.Transport.pause();
+                updateBgmUI(false);
             }
         }
         
@@ -587,7 +641,6 @@
         }
 
         function selectRandomQuestions() {
-            // 為了確保配對，我們先打亂整個資料庫
             const shuffledDb = [...database].sort(() => 0.5 - Math.random());
             currentQuestions = [];
             currentSituations = [];
@@ -595,12 +648,10 @@
             let uniqueSituationsMap = new Map();
             let colorIndex = 0;
             
-            // 取前 8 個不重複的成語，並給予各情境獨立顏色
             for (let i = 0; i < TOTAL_QUESTIONS; i++) {
                 let dbItem = shuffledDb[i];
                 let sitName = dbItem.situation;
                 
-                // 如果這個情境是第一次出現，為它分配一個顏色並加入 Map
                 if (!uniqueSituationsMap.has(sitName)) {
                     uniqueSituationsMap.set(sitName, {
                         name: sitName,
@@ -611,7 +662,6 @@
                     colorIndex++;
                 }
                 
-                // 增加該情境需要被配對的次數
                 let sitData = uniqueSituationsMap.get(sitName);
                 sitData.targetCount++;
                 
@@ -621,26 +671,23 @@
                     situation: sitName,
                     chars: dbItem.idiom.split(''),
                     colorTheme: sitData.colorTheme,
-                    isMatched: false
+                    isMatched: false,
+                    pronunciation: dbItem.pronunciation || dbItem.idiom // 存入修正後的發音
                 });
             }
             
-            // 將 Map 轉換為陣列，供右側情境面板使用
             currentSituations = Array.from(uniqueSituationsMap.values());
         }
 
         function generateGridData() {
-            // 初始化 8x8 二維陣列，內容為 null
             gridData = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
             
-            // 嘗試將 8 個成語放置入方陣中 (水平或垂直)
             for (let q of currentQuestions) {
                 let placed = false;
                 let attempts = 0;
                 
                 while (!placed && attempts < 100) {
                     attempts++;
-                    // 隨機決定方向: 0 為水平(由左至右), 1 為垂直(由上至下)
                     const isHorizontal = Math.random() < 0.5;
                     const len = q.idiom.length;
                     
@@ -653,29 +700,21 @@
                         startY = Math.floor(Math.random() * (GRID_SIZE - len + 1));
                     }
                     
-                    // 檢查是否可以放置 (確保完全沒有重疊，以保證顏色顯示獨立)
                     let canPlace = true;
                     for (let i = 0; i < len; i++) {
                         let x = isHorizontal ? startX + i : startX;
                         let y = isHorizontal ? startY : startY + i;
                         
-                        if (gridData[y][x] !== null) {
-                            canPlace = false;
-                            break;
-                        }
+                        if (gridData[y][x] !== null) { canPlace = false; break; }
                     }
                     
                     if (canPlace) {
-                        // 正式放置
-                        q.positions = []; // 記錄該成語在方陣中的位置
+                        q.positions = [];
                         for (let i = 0; i < len; i++) {
                             let x = isHorizontal ? startX + i : startX;
                             let y = isHorizontal ? startY : startY + i;
                             
-                            gridData[y][x] = {
-                                char: q.chars[i],
-                                idiomIds: [q.id]
-                            };
+                            gridData[y][x] = { char: q.chars[i], idiomIds: [q.id] };
                             q.positions.push({y, x});
                         }
                         placed = true;
@@ -683,15 +722,11 @@
                 }
             }
             
-            // 填滿剩下的空格 (用指定題庫相關文字作為干擾字)
             for (let y = 0; y < GRID_SIZE; y++) {
                 for (let x = 0; x < GRID_SIZE; x++) {
                     if (gridData[y][x] === null) {
                         const randomChar = fillerChars.charAt(Math.floor(Math.random() * fillerChars.length));
-                        gridData[y][x] = {
-                            char: randomChar,
-                            idiomIds: [] // 空陣列代表這是干擾字
-                        };
+                        gridData[y][x] = { char: randomChar, idiomIds: [] };
                     }
                 }
             }
@@ -719,7 +754,6 @@
                     const cell = document.createElement('div');
                     cell.className = 'grid-cell';
                     cell.textContent = cellData.char;
-                    // 儲存資料在 DOM 上方便存取
                     cell.dataset.y = y;
                     cell.dataset.x = x;
                     cell.dataset.idiomIds = JSON.stringify(cellData.idiomIds);
@@ -727,7 +761,7 @@
                     cell.addEventListener('click', () => handleCellClick(cell, cellData));
                     
                     board.appendChild(cell);
-                    gridCells.push(cell); // 儲存參考
+                    gridCells.push(cell);
                 }
             }
         }
@@ -736,41 +770,44 @@
             const board = document.getElementById('situations-board');
             board.innerHTML = '';
             
-            // 打亂情境選項的順序 (只顯示不重複的情境)
             const shuffledSituations = [...currentSituations].sort(() => 0.5 - Math.random());
             
             shuffledSituations.forEach(sit => {
                 const btn = document.createElement('button');
                 btn.className = 'situation-btn py-4 px-2 rounded-lg flex flex-col items-center justify-center';
                 btn.textContent = sit.name;
-                btn.dataset.situation = sit.name; // 改為記錄情境名稱
+                btn.dataset.situation = sit.name;
                 
                 btn.addEventListener('click', () => handleSituationClick(btn, sit.name));
-                
                 board.appendChild(btn);
             });
         }
 
         function handleCellClick(cell, cellData) {
-            // 已經配對成功、或者該格子已經點錯失效，或者遊戲結束，不反應
-            if (cell.classList.contains('matched') || cell.classList.contains('disabled') || currentHearts <= 0) return;
+            // 如果點擊已配對的格子，報讀該成語，並直接返回（不影響其他邏輯）
+            if (cell.classList.contains('matched')) {
+                 const ids = JSON.parse(cell.dataset.idiomIds);
+                 let targetId = ids.find(id => {
+                    const q = currentQuestions.find(cq => cq.id === id);
+                    return q && q.isMatched;
+                 });
+                 if(targetId){
+                     const q = currentQuestions.find(cq => cq.id === targetId);
+                     speakText(q.pronunciation);
+                 }
+                 return;
+            }
+
+            if (cell.classList.contains('disabled') || currentHearts <= 0) return;
             
             const ids = JSON.parse(cell.dataset.idiomIds);
             
             if (ids.length === 0) {
-                // 點到干擾字 -> 錯誤！
                 playWrongSound();
-                
-                // 套用字體變暗 (disabled) 並短暫顯示叉叉 (show-cross)
                 cell.classList.add('disabled', 'show-cross');
-                // 1秒後移除叉叉，但保留 disabled 狀態不可再點選
-                setTimeout(() => {
-                    cell.classList.remove('show-cross');
-                }, 1000);
-
+                setTimeout(() => cell.classList.remove('show-cross'), 1000);
                 loseHeart();
             } else {
-                // 點到正確的字 -> 找出該字所屬的未配對成語
                 let targetId = ids.find(id => {
                     const q = currentQuestions.find(cq => cq.id === id);
                     return q && !q.isMatched;
@@ -784,47 +821,35 @@
         }
 
         function selectIdiom(id) {
-            // 清除之前的選取狀態 (尚未配對的)
             gridCells.forEach(cell => {
-                if (!cell.classList.contains('matched')) {
-                    cell.classList.remove('selected-idiom');
-                }
+                if (!cell.classList.contains('matched')) cell.classList.remove('selected-idiom');
             });
             
             currentlySelectedIdiomId = id;
             const q = currentQuestions.find(cq => cq.id === id);
             
-            // 讓整個方陣進入「有選取目標」的狀態，觸發其他格子淡化的 CSS
+            // 選中時也加入語音報讀
+            speakText(q.pronunciation);
+
             document.getElementById('grid-board').classList.add('has-active-selection');
             
-            // 點亮該成語的所有字並套用專屬顏色
             q.positions.forEach(pos => {
                 const index = pos.y * GRID_SIZE + pos.x;
                 const cell = gridCells[index];
-                
-                // 根據該題的獨立顏色，設定 CSS 變數
                 cell.style.setProperty('--idiom-text', q.colorTheme.text);
                 cell.style.setProperty('--idiom-bg', q.colorTheme.bg);
                 cell.style.setProperty('--idiom-border', q.colorTheme.border);
-                
                 cell.classList.add('selected-idiom');
             });
             
-            // 讓右側按鈕提示可以點擊
             document.querySelectorAll('.situation-btn').forEach(btn => {
-                if (!btn.classList.contains('matched')) {
-                    btn.classList.add('ready-to-pair');
-                }
+                if (!btn.classList.contains('matched')) btn.classList.add('ready-to-pair');
             });
         }
 
         function handleSituationClick(btn, clickedSituationName) {
             let sitData = currentSituations.find(s => s.name === clickedSituationName);
-            
-            // 如果該情境已經完全配對，或是生命值歸零，不予理會
             if (sitData.matchCount >= sitData.targetCount || currentHearts <= 0) return;
-            
-            // 必須先在左側選中題辭
             if (!currentlySelectedIdiomId) {
                 showStatus('請先在左方選出題辭！', 'error');
                 return;
@@ -832,15 +857,11 @@
             
             const q = currentQuestions.find(cq => cq.id === currentlySelectedIdiomId);
             
-            // 檢查配對是否正確
             if (clickedSituationName === q.situation) {
-                // 配對成功！
                 playCorrectSound();
                 showStatus('正確！', 'success');
-                
                 q.isMatched = true;
                 
-                // 標記左側格子為已配對，並保留專屬顏色
                 q.positions.forEach(pos => {
                     const index = pos.y * GRID_SIZE + pos.x;
                     const cell = gridCells[index];
@@ -848,25 +869,16 @@
                     cell.classList.add('matched');
                 });
                 
-                // 處理右側情境按鈕的點擊次數與狀態
                 sitData.matchCount++;
-                
-                // 套用對應的顏色變數
                 btn.style.setProperty('--idiom-text', q.colorTheme.text);
                 btn.style.setProperty('--idiom-bg', q.colorTheme.bg);
                 btn.style.setProperty('--idiom-border', q.colorTheme.border);
-
                 btn.classList.remove('ready-to-pair');
-                
-                // 配對成功後，移除方陣的淡化狀態
                 document.getElementById('grid-board').classList.remove('has-active-selection');
                 
                 if (sitData.matchCount < sitData.targetCount) {
-                    // 同情境還有其他題辭，顯示顏色 2 秒後恢復
                     btn.classList.add('temp-matched');
-                    
                     setTimeout(() => {
-                        // 確保在 2 秒內沒有被完全配對才移除顏色
                         if (!btn.classList.contains('matched')) {
                             btn.classList.remove('temp-matched');
                             btn.style.removeProperty('--idiom-text');
@@ -875,37 +887,27 @@
                         }
                     }, 2000);
                 } else {
-                    // 同情境的所有題辭都配對完畢，永久顯示顏色並加上勾勾禁用
                     btn.classList.remove('temp-matched');
                     btn.classList.add('matched');
                     btn.disabled = true;
                 }
                 
-                // 取消其他按鈕的 ready 狀態
                 document.querySelectorAll('.situation-btn').forEach(b => b.classList.remove('ready-to-pair'));
-                
                 currentlySelectedIdiomId = null;
                 matchedCount++;
                 updateProgress();
-                
                 checkWin();
                 
             } else {
-                // 配對失敗 (選了題辭 A 但點了情境 B)
                 playWrongSound();
                 showStatus('配對錯誤！', 'error');
-                
-                // 取消左側選取並解除淡化狀態
                 document.getElementById('grid-board').classList.remove('has-active-selection');
-                
                 q.positions.forEach(pos => {
                     const index = pos.y * GRID_SIZE + pos.x;
                     gridCells[index].classList.remove('selected-idiom');
                 });
-                
                 document.querySelectorAll('.situation-btn').forEach(b => b.classList.remove('ready-to-pair'));
                 currentlySelectedIdiomId = null;
-                
                 loseHeart();
             }
         }
@@ -915,15 +917,10 @@
                 currentHearts--;
                 const heartIcon = document.getElementById(`heart-${currentHearts}`);
                 if (heartIcon) {
-                    heartIcon.classList.add('heart-lost');
-                    // 稍微震動一下
-                    heartIcon.classList.add('heart-beat-anim');
+                    heartIcon.classList.add('heart-lost', 'heart-beat-anim');
                     setTimeout(() => heartIcon.classList.remove('heart-beat-anim'), 500);
                 }
-                
-                if (currentHearts === 0) {
-                    gameOver();
-                }
+                if (currentHearts === 0) gameOver();
             }
         }
 
@@ -931,7 +928,6 @@
             const statusMsg = document.getElementById('status-message');
             statusMsg.textContent = text;
             statusMsg.className = `text-xl font-bold absolute left-1/2 transform -translate-x-1/2 transition-opacity duration-300 opacity-100 ${type === 'success' ? 'text-green-600' : 'text-red-500'}`;
-            
             setTimeout(() => {
                 statusMsg.classList.remove('opacity-100');
                 statusMsg.classList.add('opacity-0');
@@ -945,16 +941,12 @@
         function gameOver() {
             stopTimer();
             Swal.fire({
-                title: '挑戰失敗',
-                text: '愛心用光了，再接再厲！',
-                icon: 'error',
-                confirmButtonText: '重新開始',
-                confirmButtonColor: '#3b82f6'
+                title: '挑戰失敗', text: '愛心用光了，再接再厲！', icon: 'error',
+                confirmButtonText: '重新開始', confirmButtonColor: '#3b82f6'
             }).then(() => {
-                // 失敗直接回首頁
                 document.getElementById('game-container').style.display = 'none';
                 document.getElementById('start-screen').style.display = 'flex';
-                document.getElementById('btn-toggle-bgm-home').style.display = 'flex';
+                document.getElementById('btn-toggle-bgm-home').parentElement.style.display = 'block';
             });
         }
 
@@ -962,20 +954,12 @@
             if (matchedCount === TOTAL_QUESTIONS) {
                 stopTimer();
                 playWinSound();
-                saveToLeaderboard(); // 儲存紀錄
+                saveToLeaderboard();
                 
-                // 遊戲結束，3秒後進入回顧畫面
-                setTimeout(() => {
-                    showReviewScreen();
-                }, 3000);
-                
+                setTimeout(() => showReviewScreen(), 3000);
                 Swal.fire({
-                    title: '過關！',
-                    text: '即將進入總複習...',
-                    icon: 'success',
-                    timer: 3000,
-                    showConfirmButton: false,
-                    backdrop: `rgba(0,0,0,0.4)`
+                    title: '過關！', text: '即將進入總複習...', icon: 'success',
+                    timer: 3000, showConfirmButton: false, backdrop: `rgba(0,0,0,0.4)`
                 });
             }
         }
@@ -987,56 +971,62 @@
             const reviewList = document.getElementById('review-list');
             reviewList.innerHTML = '';
             
-            // 將題目依照情境(situation)進行分組與排序
             const groupedQuestions = {};
             currentQuestions.forEach(q => {
-                if (!groupedQuestions[q.situation]) {
-                    groupedQuestions[q.situation] = [];
-                }
+                if (!groupedQuestions[q.situation]) groupedQuestions[q.situation] = [];
                 groupedQuestions[q.situation].push(q);
             });
             
             let rowIndex = 0;
-            // 遍歷分組後的情境來渲染 (同情境的會排在一起)
             for (const situation in groupedQuestions) {
                 groupedQuestions[situation].forEach(q => {
                     const row = document.createElement('div');
                     row.className = `grid grid-cols-2 p-4 ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-blue-50 transition-colors`;
                     
                     const idiomCol = document.createElement('div');
-                    idiomCol.className = 'text-center text-xl font-bold tracking-widest';
-                    // 複習畫面也套用相同的專屬顏色
+                    idiomCol.className = 'text-center text-xl font-bold tracking-widest review-idiom flex items-center justify-center gap-2';
                     idiomCol.style.color = q.colorTheme.text;
-                    idiomCol.textContent = q.idiom;
+                    idiomCol.title = "點擊發音";
+                    
+                    // 加入喇叭圖示提示
+                    const speakerIcon = document.createElement('i');
+                    speakerIcon.className = 'fa-solid fa-volume-low text-sm opacity-50';
+                    
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = q.idiom;
+                    
+                    idiomCol.appendChild(textSpan);
+                    idiomCol.appendChild(speakerIcon);
+
+                    // 點擊列表中的題辭報讀修正後的讀音
+                    idiomCol.addEventListener('click', () => {
+                        speakText(q.pronunciation);
+                    });
                     
                     const situationCol = document.createElement('div');
                     situationCol.className = 'text-center text-lg text-slate-700 flex items-center justify-center';
                     
                     const arrow = document.createElement('i');
                     arrow.className = 'fa-solid fa-arrow-right-long text-slate-300 mx-3';
-                    
-                    const textSpan = document.createElement('span');
-                    textSpan.textContent = q.situation;
+                    const sitTextSpan = document.createElement('span');
+                    sitTextSpan.textContent = q.situation;
                     
                     situationCol.appendChild(arrow);
-                    situationCol.appendChild(textSpan);
+                    situationCol.appendChild(sitTextSpan);
                     
                     row.appendChild(idiomCol);
                     row.appendChild(situationCol);
-                    
                     reviewList.appendChild(row);
                     rowIndex++;
                 });
             }
         }
 
-        // 排行榜與 LocalStorage 邏輯
         const LEADERBOARD_KEY = 'idiom_game_leaderboard';
-        const MAX_RECORDS = 20; // 最多保留 20 筆紀錄
+        const MAX_RECORDS = 20;
         
         function saveToLeaderboard() {
             let records = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
-            
             const newRecord = {
                 id: Date.now().toString(),
                 name: playerName,
@@ -1045,19 +1035,12 @@
                 maxHearts: maxHearts,
                 date: new Date().toLocaleString()
             };
-            
             records.push(newRecord);
-            // 排序：先比時間(越短越好)，再比剩餘愛心(越多越好)
             records.sort((a, b) => {
                 if (a.time !== b.time) return a.time - b.time;
                 return b.hearts - a.hearts;
             });
-            
-            // 限制筆數
-            if (records.length > MAX_RECORDS) {
-                records = records.slice(0, MAX_RECORDS);
-            }
-            
+            if (records.length > MAX_RECORDS) records = records.slice(0, MAX_RECORDS);
             localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(records));
         }
 
@@ -1067,7 +1050,6 @@
             list.innerHTML = '';
             
             const records = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
-            
             if (records.length === 0) {
                 list.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500">目前尚無紀錄，趕快成為第一個挑戰者吧！</td></tr>';
                 return;
@@ -1077,7 +1059,6 @@
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0';
                 
-                // 名次徽章 (前三名給予特別 Icon)
                 let rankHtml = `<span class="font-bold text-slate-600">${index + 1}</span>`;
                 if (index === 0) rankHtml = `<i class="fa-solid fa-medal text-yellow-400 text-2xl"></i>`;
                 else if (index === 1) rankHtml = `<i class="fa-solid fa-medal text-slate-400 text-xl"></i>`;
@@ -1086,7 +1067,6 @@
                 const minutes = Math.floor(record.time / 60).toString().padStart(2, '0');
                 const seconds = (record.time % 60).toString().padStart(2, '0');
                 
-                // 愛心顯示
                 let heartsHtml = '';
                 for(let i=0; i<record.maxHearts; i++) {
                     heartsHtml += `<i class="fa-solid fa-heart ${i < record.hearts ? 'text-red-500' : 'text-slate-200'} text-sm"></i>`;
@@ -1110,37 +1090,26 @@
             });
         }
         
-        // 供單筆刪除按鈕呼叫
         window.deleteRecord = function(id) {
             Swal.fire({
-                title: '確定刪除？',
-                text: "刪除後將無法恢復此紀錄！",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#94a3b8',
-                confirmButtonText: '是的，刪除',
-                cancelButtonText: '取消'
+                title: '確定刪除？', text: "刪除後將無法恢復此紀錄！", icon: 'warning',
+                showCancelButton: true, confirmButtonColor: '#ef4444', cancelButtonColor: '#94a3b8',
+                confirmButtonText: '是的，刪除', cancelButtonText: '取消'
             }).then((result) => {
                 if (result.isConfirmed) {
                     let records = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
                     records = records.filter(r => r.id !== id);
                     localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(records));
-                    showLeaderboard(); // 重新渲染排行榜
+                    showLeaderboard();
                 }
             });
         };
 
         function clearLeaderboard() {
             Swal.fire({
-                title: '清空排行榜？',
-                text: "這將會刪除所有的榮譽紀錄，確定嗎？",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#94a3b8',
-                confirmButtonText: '是的，全部清空',
-                cancelButtonText: '取消'
+                title: '清空排行榜？', text: "這將會刪除所有的榮譽紀錄，確定嗎？", icon: 'warning',
+                showCancelButton: true, confirmButtonColor: '#ef4444', cancelButtonColor: '#94a3b8',
+                confirmButtonText: '是的，全部清空', cancelButtonText: '取消'
             }).then((result) => {
                 if (result.isConfirmed) {
                     localStorage.removeItem(LEADERBOARD_KEY);
