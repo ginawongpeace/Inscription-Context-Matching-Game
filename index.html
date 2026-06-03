@@ -1,0 +1,437 @@
+<!-- ... existing code ... -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入 SweetAlert2 用於精美的提示框 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- 引入 Tone.js 用於背景音樂 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    
+    <style>
+        :root {
+<!-- ... existing code ... -->
+    <!-- 首頁設定畫面 -->
+    <div id="start-screen" class="flex-grow flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
+            <h1 class="text-3xl font-bold text-slate-800 mb-6">題辭與情境配對</h1>
+            <p class="text-slate-600 mb-8">從左側方陣中找出正確的題辭，並與右側的情境配對！</p>
+            
+            <div class="mb-6 text-left">
+                <label for="player-name" class="block text-lg font-medium text-slate-700 mb-2">挑戰者姓名：</label>
+                <input type="text" id="player-name" placeholder="請輸入您的姓名" 
+                       class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg text-slate-700">
+            </div>
+
+            <div class="mb-8 text-left">
+                <label for="heart-setting" class="block text-lg font-medium text-slate-700 mb-2">
+                    設定生命值 (愛心數量): <span id="heart-display" class="font-bold text-red-500">3</span>
+                </label>
+<!-- ... existing code ... -->
+    <!-- 遊戲主畫面 -->
+    <div id="game-container" class="flex-grow flex-col">
+        <!-- 頂部資訊列 -->
+        <div class="bg-white shadow-sm p-4 flex justify-between items-center z-10 relative">
+            <div class="text-lg font-bold text-slate-700 flex items-center gap-4">
+                <span>進度: <span id="progress-text" class="text-blue-600">0/8</span></span>
+                <button id="btn-toggle-bgm" class="text-slate-400 hover:text-blue-500 transition-colors" title="開關音樂">
+                    <i class="fa-solid fa-music"></i>
+                </button>
+            </div>
+            <div id="status-message" class="text-xl font-bold text-slate-800 absolute left-1/2 transform -translate-x-1/2 opacity-0 transition-opacity duration-300">
+                正確！
+<!-- ... existing code ... -->
+                    <div id="situations-board" class="grid grid-cols-2 gap-4">
+                        <!-- 8 個情境按鈕將由 JS 動態生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 左下角計時器 -->
+        <div class="fixed bottom-4 left-4 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-slate-200 flex items-center gap-2 text-slate-700 font-bold z-50">
+            <i class="fa-regular fa-clock text-blue-500"></i>
+            <span id="game-timer">00:00</span>
+        </div>
+    </div>
+
+    <!-- 遊戲結束回顧畫面 -->
+    <div id="review-container" class="flex-grow flex-col bg-slate-50">
+<!-- ... existing code ... -->
+                <div id="review-list" class="divide-y divide-slate-100">
+                    <!-- 回顧列表由 JS 動態生成 -->
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-center gap-4">
+                <button id="btn-restart" class="py-3 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-md transition-colors text-lg inline-block">
+                    <i class="fa-solid fa-rotate-right mr-2"></i> 再玩一次
+                </button>
+                <button id="btn-show-leaderboard" class="py-3 px-8 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg shadow-md transition-colors text-lg inline-block">
+                    <i class="fa-solid fa-ranking-star mr-2"></i> 排行榜
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 排行榜畫面 -->
+    <div id="leaderboard-container" class="flex-grow flex-col bg-slate-50 fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="max-w-3xl mx-auto w-full p-6 text-center mt-10">
+            <div class="mb-6 flex justify-between items-center">
+                <h2 class="text-3xl font-bold text-slate-800"><i class="fa-solid fa-crown text-amber-500 mr-2"></i> 榮譽排行榜</h2>
+                <button id="btn-close-leaderboard" class="text-slate-400 hover:text-slate-600 text-2xl transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 text-left mb-6">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
+                            <th class="p-4 font-bold text-center w-16">名次</th>
+                            <th class="p-4 font-bold">挑戰者</th>
+                            <th class="p-4 font-bold text-center">耗時</th>
+                            <th class="p-4 font-bold text-center">剩餘愛心</th>
+                            <th class="p-4 font-bold text-center w-24">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-list" class="divide-y divide-slate-100">
+                        <!-- 排行榜內容由 JS 動態生成 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-end">
+                <button id="btn-clear-leaderboard" class="py-2 px-4 bg-red-100 hover:bg-red-200 text-red-600 font-bold rounded-lg transition-colors">
+                    <i class="fa-solid fa-trash-can mr-2"></i> 清空所有紀錄
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 簡單的音效使用 Web Audio API (不依賴外部檔案) -->
+    <script>
+<!-- ... existing code ... -->
+        // 遊戲狀態
+        let currentlySelectedIdiomId = null; // 當前在左側選中的題辭 ID
+        let matchedCount = 0; // 已成功配對的數量
+        let playerName = ""; // 挑戰者姓名
+        
+        // 計時器變數
+        let startTime = 0;
+        let timerInterval = null;
+        let timeElapsedInSeconds = 0;
+
+        // BGM 變數
+        let isBgmEnabled = true;
+        let bgmSynth, bgmSequence;
+        
+        // 初始化 BGM (Tone.js)
+        async function initBGM() {
+            if (bgmSequence) return;
+            bgmSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+            bgmSynth.volume.value = -12; // 音量微調
+            
+            // 輕快簡單的五聲音階旋律
+            const melody = [
+                {"time": "0:0", "note": ["C4", "E4"]}, {"time": "0:1", "note": "G4"},
+                {"time": "0:2", "note": ["C4", "E4"]}, {"time": "0:3", "note": "A4"},
+                {"time": "1:0", "note": ["D4", "F4"]}, {"time": "1:1", "note": "A4"},
+                {"time": "1:2", "note": ["B3", "D4"]}, {"time": "1:3", "note": "G4"}
+            ];
+            
+            bgmSequence = new Tone.Part((time, value) => {
+                bgmSynth.triggerAttackRelease(value.note, "8n", time);
+            }, melody);
+            
+            bgmSequence.loop = true;
+            bgmSequence.loopEnd = "2m";
+            Tone.Transport.bpm.value = 110;
+        }
+
+        function toggleBGM() {
+            isBgmEnabled = !isBgmEnabled;
+            const btnIcon = document.querySelector('#btn-toggle-bgm i');
+            if (isBgmEnabled) {
+                btnIcon.className = 'fa-solid fa-music text-blue-500';
+                if (timerInterval) Tone.Transport.start(); // 若遊戲進行中則播放
+            } else {
+                btnIcon.className = 'fa-solid fa-music text-slate-400';
+                Tone.Transport.pause();
+            }
+        }
+
+        document.getElementById('btn-toggle-bgm').addEventListener('click', () => {
+            Tone.start(); // 確保 AudioContext 被啟動
+            initBGM();
+            toggleBGM();
+        });
+        
+        // 音效系統
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+<!-- ... existing code ... -->
+        // 開始按鈕事件
+        document.getElementById('btn-start').addEventListener('click', startGame);
+        document.getElementById('btn-restart').addEventListener('click', () => {
+            document.getElementById('review-container').style.display = 'none';
+            document.getElementById('start-screen').style.display = 'flex';
+        });
+
+        // 排行榜相關事件
+        document.getElementById('btn-show-leaderboard').addEventListener('click', showLeaderboard);
+        document.getElementById('btn-close-leaderboard').addEventListener('click', () => {
+            document.getElementById('leaderboard-container').style.display = 'none';
+        });
+        document.getElementById('btn-clear-leaderboard').addEventListener('click', clearLeaderboard);
+
+        function startGame() {
+            playerName = document.getElementById('player-name').value.trim();
+            if (!playerName) {
+                Swal.fire({ icon: 'warning', title: '請輸入姓名', text: '請輸入挑戰者姓名才能開始遊戲！' });
+                return;
+            }
+
+            // 啟動 BGM
+            Tone.start().then(() => {
+                initBGM();
+                if (isBgmEnabled) Tone.Transport.start();
+                if (bgmSequence) bgmSequence.start(0);
+            });
+
+            // 初始化變數
+            currentHearts = maxHearts;
+            matchedCount = 0;
+            currentlySelectedIdiomId = null;
+            timeElapsedInSeconds = 0;
+            updateTimerDisplay();
+            document.getElementById('grid-board').classList.remove('has-active-selection');
+            
+            // 抽選 8 題不重複的題目
+<!-- ... existing code ... -->
+            renderSituations();
+            updateProgress();
+            
+            // 切換畫面
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-container').style.display = 'flex';
+
+            // 開始計時
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                timeElapsedInSeconds = Math.floor((Date.now() - startTime) / 1000);
+                updateTimerDisplay();
+            }, 1000);
+        }
+        
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            Tone.Transport.pause(); // 遊戲結束暫停音樂
+        }
+        
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeElapsedInSeconds / 60).toString().padStart(2, '0');
+            const seconds = (timeElapsedInSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('game-timer').textContent = `${minutes}:${seconds}`;
+        }
+
+        function selectRandomQuestions() {
+<!-- ... existing code ... -->
+        function gameOver() {
+            stopTimer();
+            Swal.fire({
+                title: '挑戰失敗',
+                text: '愛心用光了，再接再厲！',
+                icon: 'error',
+                confirmButtonText: '重新開始',
+                confirmButtonColor: '#3b82f6'
+            }).then(() => {
+                // 失敗直接回首頁
+                document.getElementById('game-container').style.display = 'none';
+                document.getElementById('start-screen').style.display = 'flex';
+            });
+        }
+
+        function checkWin() {
+            if (matchedCount === TOTAL_QUESTIONS) {
+                stopTimer();
+                playWinSound();
+                saveToLeaderboard(); // 儲存紀錄
+                
+                // 遊戲結束，3秒後進入回顧畫面
+                setTimeout(() => {
+                    showReviewScreen();
+                }, 3000);
+<!-- ... existing code ... -->
+        function showReviewScreen() {
+            document.getElementById('game-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'flex';
+            
+            const reviewList = document.getElementById('review-list');
+            reviewList.innerHTML = '';
+            
+            // 將題目依照情境(situation)進行分組與排序
+            const groupedQuestions = {};
+            currentQuestions.forEach(q => {
+                if (!groupedQuestions[q.situation]) {
+                    groupedQuestions[q.situation] = [];
+                }
+                groupedQuestions[q.situation].push(q);
+            });
+            
+            let rowIndex = 0;
+            // 遍歷分組後的情境來渲染 (同情境的會排在一起)
+            for (const situation in groupedQuestions) {
+                groupedQuestions[situation].forEach(q => {
+                    const row = document.createElement('div');
+                    row.className = `grid grid-cols-2 p-4 ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-blue-50 transition-colors`;
+                    
+                    const idiomCol = document.createElement('div');
+                    idiomCol.className = 'text-center text-xl font-bold tracking-widest';
+                    // 複習畫面也套用相同的專屬顏色
+                    idiomCol.style.color = q.colorTheme.text;
+                    idiomCol.textContent = q.idiom;
+                    
+                    const situationCol = document.createElement('div');
+                    situationCol.className = 'text-center text-lg text-slate-700 flex items-center justify-center';
+                    
+                    const arrow = document.createElement('i');
+                    arrow.className = 'fa-solid fa-arrow-right-long text-slate-300 mx-3';
+                    
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = q.situation;
+                    
+                    situationCol.appendChild(arrow);
+                    situationCol.appendChild(textSpan);
+                    
+                    row.appendChild(idiomCol);
+                    row.appendChild(situationCol);
+                    
+                    reviewList.appendChild(row);
+                    rowIndex++;
+                });
+            }
+        }
+
+        // 排行榜與 LocalStorage 邏輯
+        const LEADERBOARD_KEY = 'idiom_game_leaderboard';
+        const MAX_RECORDS = 20; // 最多保留 20 筆紀錄
+        
+        function saveToLeaderboard() {
+            let records = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
+            
+            const newRecord = {
+                id: Date.now().toString(),
+                name: playerName,
+                time: timeElapsedInSeconds,
+                hearts: currentHearts,
+                maxHearts: maxHearts,
+                date: new Date().toLocaleString()
+            };
+            
+            records.push(newRecord);
+            // 排序：先比時間(越短越好)，再比剩餘愛心(越多越好)
+            records.sort((a, b) => {
+                if (a.time !== b.time) return a.time - b.time;
+                return b.hearts - a.hearts;
+            });
+            
+            // 限制筆數
+            if (records.length > MAX_RECORDS) {
+                records = records.slice(0, MAX_RECORDS);
+            }
+            
+            localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(records));
+        }
+
+        function showLeaderboard() {
+            document.getElementById('leaderboard-container').style.display = 'flex';
+            const list = document.getElementById('leaderboard-list');
+            list.innerHTML = '';
+            
+            const records = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
+            
+            if (records.length === 0) {
+                list.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500">目前尚無紀錄，趕快成為第一個挑戰者吧！</td></tr>';
+                return;
+            }
+            
+            records.forEach((record, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0';
+                
+                // 名次徽章 (前三名給予特別 Icon)
+                let rankHtml = `<span class="font-bold text-slate-600">${index + 1}</span>`;
+                if (index === 0) rankHtml = `<i class="fa-solid fa-medal text-yellow-400 text-2xl"></i>`;
+                else if (index === 1) rankHtml = `<i class="fa-solid fa-medal text-slate-400 text-xl"></i>`;
+                else if (index === 2) rankHtml = `<i class="fa-solid fa-medal text-amber-700 text-xl"></i>`;
+                
+                const minutes = Math.floor(record.time / 60).toString().padStart(2, '0');
+                const seconds = (record.time % 60).toString().padStart(2, '0');
+                
+                // 愛心顯示
+                let heartsHtml = '';
+                for(let i=0; i<record.maxHearts; i++) {
+                    heartsHtml += `<i class="fa-solid fa-heart ${i < record.hearts ? 'text-red-500' : 'text-slate-200'} text-sm"></i>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-4 text-center">${rankHtml}</td>
+                    <td class="p-4 font-bold text-slate-700">
+                        ${record.name}
+                        <div class="text-xs text-slate-400 font-normal">${record.date}</div>
+                    </td>
+                    <td class="p-4 text-center font-mono text-blue-600">${minutes}:${seconds}</td>
+                    <td class="p-4 text-center space-x-1 whitespace-nowrap">${heartsHtml}</td>
+                    <td class="p-4 text-center">
+                        <button class="text-slate-400 hover:text-red-500 transition-colors p-2" onclick="deleteRecord('${record.id}')" title="刪除此紀錄">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                list.appendChild(tr);
+            });
+        }
+        
+        // 供單筆刪除按鈕呼叫
+        window.deleteRecord = function(id) {
+            Swal.fire({
+                title: '確定刪除？',
+                text: "刪除後將無法恢復此紀錄！",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: '是的，刪除',
+                cancelButtonText: '取消'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    let records = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
+                    records = records.filter(r => r.id !== id);
+                    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(records));
+                    showLeaderboard(); // 重新渲染排行榜
+                }
+            });
+        };
+
+        function clearLeaderboard() {
+            Swal.fire({
+                title: '清空排行榜？',
+                text: "這將會刪除所有的榮譽紀錄，確定嗎？",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: '是的，全部清空',
+                cancelButtonText: '取消'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem(LEADERBOARD_KEY);
+                    showLeaderboard();
+                    Swal.fire('已清空', '排行榜紀錄已全數刪除。', 'success');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
