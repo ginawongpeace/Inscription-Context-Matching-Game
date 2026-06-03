@@ -1,4 +1,18 @@
-<!-- ... existing code ... -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>題辭與情境配對遊戲</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 載入源泉圓體 (GenSenRounded) -->
+    <link href="https://cdn.jsdelivr.net/npm/gensen-rounded-web@1.0.1/css/gensen-rounded-tw.css" rel="stylesheet">
+    <!-- 載入 Google Fonts 的基礎設定與昭源圓體 (Chiron GoRound) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- 引入 SweetAlert2 用於精美的提示框 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -7,7 +21,174 @@
     
     <style>
         :root {
-<!-- ... existing code ... -->
+            /* 定義字型順序變數：優先使用源泉圓體，其次昭源圓體，最後是微軟正黑體 */
+            --main-font: 'GenSenRounded TW', 'Chiron GoRound TC', 'Microsoft JhengHei', sans-serif;
+        }
+
+        body {
+            /* 將字型套用到整個網頁 */
+            font-family: var(--main-font);
+            font-optical-sizing: auto;
+            background-color: #f8fafc; /* Tailwind slate-50 */
+            user-select: none; /* 防止遊戲中意外選取文字 */
+            overflow-x: hidden;
+        }
+
+        /* 遊戲方陣格子的樣式 */
+        .grid-cell {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #94a3b8; /* 預設文字顏色，較淡 (slate-400) */
+            background-color: transparent;
+            border-radius: 0.375rem; /* rounded-md */
+        }
+        
+        @media (min-width: 768px) {
+            .grid-cell {
+                font-size: 2rem;
+            }
+        }
+
+        .grid-cell:hover:not(.disabled):not(.matched):not(.selected-idiom) {
+            background-color: #f1f5f9; /* slate-100 */
+            color: #475569; /* slate-600 */
+        }
+
+        /* 點錯的干擾字 (字變暗) */
+        .grid-cell.disabled {
+            color: #cbd5e1; /* slate-300 */
+            cursor: not-allowed;
+            background-color: transparent;
+        }
+        
+        /* 叉叉圖示 (會動態移除) */
+        .grid-cell.show-cross::after {
+            content: '\f00d'; /* FontAwesome times (X) */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            color: rgba(239, 68, 68, 0.7); /* red-500 with opacity */
+            font-size: 1.2em;
+        }
+
+        /* 被選中的題辭 (整組發亮，套用動態變數顏色) */
+        .grid-cell.selected-idiom {
+            color: var(--idiom-text);
+            font-weight: 700;
+            text-shadow: 0 0 8px var(--idiom-bg);
+            border: 2px solid var(--idiom-border);
+            background-color: var(--idiom-bg);
+            z-index: 10;
+        }
+
+        /* 當有題辭被選中時，方陣內其他非選中的文字全部淡化 */
+        #grid-board.has-active-selection .grid-cell:not(.selected-idiom) {
+            opacity: 0.25;
+        }
+
+        /* 已經配對成功的題辭 (套用動態變數顏色) */
+        .grid-cell.matched {
+            color: var(--idiom-text);
+            font-weight: 700;
+            cursor: default;
+            border: 2px solid var(--idiom-border);
+            background-color: var(--idiom-bg);
+        }
+
+        /* 右側情境按鈕樣式 */
+        .situation-btn {
+            transition: all 0.2s;
+            border: 2px dashed #94a3b8; /* slate-400 */
+            color: #64748b; /* slate-500 */
+            background-color: white;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .situation-btn:hover:not(:disabled) {
+            border-style: solid;
+            border-color: #64748b;
+            transform: scale(1.02);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* 當有題辭被選中時，提示可以點擊情境 */
+        .situation-btn.ready-to-pair:not(:disabled) {
+            border-color: #3b82f6; /* blue-500 */
+            color: #3b82f6;
+            border-style: solid;
+            animation: pulse-border 1.5s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+
+        /* 情境配對成功 (套用動態變數顏色) */
+        .situation-btn.matched, .situation-btn.temp-matched {
+            border-color: var(--idiom-border) !important;
+            border-style: solid !important;
+            color: var(--idiom-text) !important;
+            background-color: var(--idiom-bg) !important;
+        }
+
+        .situation-btn.matched {
+            position: relative;
+            opacity: 0.9;
+            cursor: default;
+        }
+
+        .situation-btn.matched::after {
+            content: '\f00c'; /* FontAwesome check */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--idiom-text);
+            font-size: 1.5rem;
+        }
+
+        /* 愛心動畫 */
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.2); }
+            50% { transform: scale(1); }
+            75% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .heart-icon {
+            color: #ef4444; /* red-500 */
+            display: inline-block;
+        }
+        .heart-lost {
+            color: #cbd5e1; /* slate-300 */
+            transition: color 0.5s ease;
+        }
+        .heart-beat-anim {
+            animation: heartbeat 0.5s ease-in-out;
+        }
+
+        /* 版面配置 */
+        #game-container {
+            display: none; /* 初始隱藏，設定完成後顯示 */
+        }
+        #review-container {
+            display: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
     <!-- 首頁設定畫面 -->
     <div id="start-screen" class="flex-grow flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
@@ -24,7 +205,23 @@
                 <label for="heart-setting" class="block text-lg font-medium text-slate-700 mb-2">
                     設定生命值 (愛心數量): <span id="heart-display" class="font-bold text-red-500">3</span>
                 </label>
-<!-- ... existing code ... -->
+                <input type="range" id="heart-setting" min="1" max="5" value="3" 
+                       class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-red-500">
+                <div class="flex justify-between text-xs text-slate-400 px-1 mt-2">
+                    <span>1 (困難)</span>
+                    <span>2</span>
+                    <span>3 (適中)</span>
+                    <span>4</span>
+                    <span>5 (簡單)</span>
+                </div>
+            </div>
+
+            <button id="btn-start" class="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-colors text-lg">
+                開始遊戲 <i class="fa-solid fa-play ml-2"></i>
+            </button>
+        </div>
+    </div>
+
     <!-- 遊戲主畫面 -->
     <div id="game-container" class="flex-grow flex-col">
         <!-- 頂部資訊列 -->
@@ -37,7 +234,26 @@
             </div>
             <div id="status-message" class="text-xl font-bold text-slate-800 absolute left-1/2 transform -translate-x-1/2 opacity-0 transition-opacity duration-300">
                 正確！
-<!-- ... existing code ... -->
+            </div>
+            <div id="hearts-container" class="text-xl space-x-1">
+                <!-- 愛心將由 JS 動態生成 -->
+            </div>
+        </div>
+
+        <!-- 遊戲主要內容區 (左右分欄) -->
+        <div class="flex-grow flex flex-col lg:flex-row p-4 gap-6 max-w-7xl mx-auto w-full items-center justify-center">
+            
+            <!-- 左側：8x8 文字方陣 -->
+            <div class="w-full lg:w-1/2 max-w-lg aspect-square">
+                <div id="grid-board" class="w-full h-full grid grid-cols-8 grid-rows-8 gap-1 bg-white p-2 rounded-xl shadow-lg border border-slate-200">
+                    <!-- 64 個格子將由 JS 動態生成 -->
+                </div>
+            </div>
+
+            <!-- 右側：情境選項 -->
+            <div class="w-full lg:w-1/2 max-w-lg lg:max-w-md">
+                <div class="bg-white p-4 rounded-xl shadow-lg border border-slate-200 h-full flex flex-col justify-center">
+                    <h2 class="text-center text-slate-500 mb-4 text-sm font-bold tracking-wider">點選左方題辭後，配對下方情境</h2>
                     <div id="situations-board" class="grid grid-cols-2 gap-4">
                         <!-- 8 個情境按鈕將由 JS 動態生成 -->
                     </div>
@@ -54,7 +270,18 @@
 
     <!-- 遊戲結束回顧畫面 -->
     <div id="review-container" class="flex-grow flex-col bg-slate-50">
-<!-- ... existing code ... -->
+        <div class="max-w-4xl mx-auto w-full p-6 text-center mt-10">
+            <div class="mb-8">
+                <i class="fa-solid fa-trophy text-6xl text-yellow-400 mb-4"></i>
+                <h1 class="text-4xl font-bold text-slate-800 mb-2">恭喜完成挑戰！</h1>
+                <p class="text-slate-600 text-lg">以下是本次測驗的題辭總複習：</p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 text-left">
+                <div class="grid grid-cols-2 bg-slate-100 p-4 font-bold text-slate-700 border-b border-slate-200">
+                    <div class="text-center">題辭</div>
+                    <div class="text-center">情境</div>
+                </div>
                 <div id="review-list" class="divide-y divide-slate-100">
                     <!-- 回顧列表由 JS 動態生成 -->
                 </div>
@@ -104,9 +331,51 @@
         </div>
     </div>
 
-    <!-- 簡單的音效使用 Web Audio API (不依賴外部檔案) -->
     <script>
-<!-- ... existing code ... -->
+        // 題庫資料 (成語與情境配對)
+        const database = [
+            { idiom: "百年好合", situation: "結婚" },
+            { idiom: "鳳凰于飛", situation: "結婚" },
+            { idiom: "弄璋誌喜", situation: "生子" },
+            { idiom: "天賜麟兒", situation: "生子" },
+            { idiom: "弄瓦誌喜", situation: "生女" },
+            { idiom: "松柏長青", situation: "男壽" },
+            { idiom: "春草長春", situation: "女壽" },
+            { idiom: "鐵畫銀鉤", situation: "書法比賽" },
+            { idiom: "玉潤珠圓", situation: "音樂比賽" },
+            { idiom: "高朋滿座", situation: "餐廳開業" },
+            { idiom: "桑梓之光", situation: "當選" },
+            { idiom: "前程似錦", situation: "畢業" },
+            { idiom: "青雲有志", situation: "畢業" },
+            { idiom: "鵬程萬里", situation: "畢業" },
+            { idiom: "春風化雨", situation: "校慶" }
+        ];
+
+        // 8組不同的顏色主題，用於成語及情境標籤
+        const colorPalettes = [
+            { text: '#ef4444', bg: '#fef2f2', border: '#fca5a5' }, // 紅
+            { text: '#ea580c', bg: '#fff7ed', border: '#fdba74' }, // 橘
+            { text: '#d97706', bg: '#fefce8', border: '#fcd34d' }, // 黃
+            { text: '#10b981', bg: '#ecfdf5', border: '#6ee7b7' }, // 綠
+            { text: '#3b82f6', bg: '#eff6ff', border: '#93c5fd' }, // 藍
+            { text: '#6366f1', bg: '#e0e7ff', border: '#a5b4fc' }, // 靛
+            { text: '#a855f7', bg: '#f3e8ff', border: '#d8b4fe' }, // 紫
+            { text: '#ec4899', bg: '#fdf2f8', border: '#fbcfe8' }  // 粉
+        ];
+
+        // 隨機干擾字庫 (從題庫中提取所有的字)
+        const fillerChars = "百年好合鳳凰于飛結婚弄璋誌喜天賜麟兒生子弄瓦誌喜生女松柏長青男壽春草長春女壽鐵畫銀鉤書法比賽玉潤珠圓音樂比賽高朋滿座餐廳開業桑梓之光當選前程似錦青雲有志鵬程萬里畢業春風化雨校慶";
+
+        const GRID_SIZE = 8;
+        const TOTAL_QUESTIONS = 8;
+        
+        let maxHearts = 3;
+        let currentHearts = 3;
+        let currentQuestions = []; // 本局選出的 8 題
+        let currentSituations = []; // 本局的獨特情境
+        let gridData = []; // 8x8 方陣的資料結構
+        let gridCells = []; // 對應的 DOM 元素陣列 (一維)
+        
         // 遊戲狀態
         let currentlySelectedIdiomId = null; // 當前在左側選中的題辭 ID
         let matchedCount = 0; // 已成功配對的數量
@@ -164,7 +433,39 @@
         
         // 音效系統
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-<!-- ... existing code ... -->
+        
+        function playTone(freq, type, duration) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start();
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playCorrectSound() { playTone(600, 'sine', 0.1); setTimeout(() => playTone(800, 'sine', 0.2), 100); }
+        function playWrongSound() { playTone(200, 'sawtooth', 0.3); }
+        function playSelectSound() { playTone(400, 'sine', 0.1); }
+        function playWinSound() {
+            let delay = 0;
+            [523.25, 659.25, 783.99, 1046.50].forEach(f => {
+                setTimeout(() => playTone(f, 'sine', 0.2), delay);
+                delay += 100;
+            });
+        }
+
+        // 初始化設定頁面滑桿
+        const heartSetting = document.getElementById('heart-setting');
+        const heartDisplay = document.getElementById('heart-display');
+        heartSetting.addEventListener('input', (e) => {
+            heartDisplay.textContent = e.target.value;
+            maxHearts = parseInt(e.target.value);
+        });
+
         // 開始按鈕事件
         document.getElementById('btn-start').addEventListener('click', startGame);
         document.getElementById('btn-restart').addEventListener('click', () => {
@@ -202,7 +503,14 @@
             document.getElementById('grid-board').classList.remove('has-active-selection');
             
             // 抽選 8 題不重複的題目
-<!-- ... existing code ... -->
+            selectRandomQuestions();
+            
+            // 建立 8x8 方陣資料
+            generateGridData();
+            
+            // 渲染 UI
+            renderHearts();
+            renderGrid();
             renderSituations();
             updateProgress();
             
@@ -236,7 +544,361 @@
         }
 
         function selectRandomQuestions() {
-<!-- ... existing code ... -->
+            // 為了確保配對，我們先打亂整個資料庫
+            const shuffledDb = [...database].sort(() => 0.5 - Math.random());
+            currentQuestions = [];
+            currentSituations = [];
+            
+            let uniqueSituationsMap = new Map();
+            let colorIndex = 0;
+            
+            // 取前 8 個不重複的成語，並給予各情境獨立顏色
+            for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+                let dbItem = shuffledDb[i];
+                let sitName = dbItem.situation;
+                
+                // 如果這個情境是第一次出現，為它分配一個顏色並加入 Map
+                if (!uniqueSituationsMap.has(sitName)) {
+                    uniqueSituationsMap.set(sitName, {
+                        name: sitName,
+                        targetCount: 0,
+                        matchCount: 0,
+                        colorTheme: colorPalettes[colorIndex % colorPalettes.length]
+                    });
+                    colorIndex++;
+                }
+                
+                // 增加該情境需要被配對的次數
+                let sitData = uniqueSituationsMap.get(sitName);
+                sitData.targetCount++;
+                
+                currentQuestions.push({
+                    id: `q_${i}`,
+                    idiom: dbItem.idiom,
+                    situation: sitName,
+                    chars: dbItem.idiom.split(''),
+                    colorTheme: sitData.colorTheme,
+                    isMatched: false
+                });
+            }
+            
+            // 將 Map 轉換為陣列，供右側情境面板使用
+            currentSituations = Array.from(uniqueSituationsMap.values());
+        }
+
+        function generateGridData() {
+            // 初始化 8x8 二維陣列，內容為 null
+            gridData = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+            
+            // 嘗試將 8 個成語放置入方陣中 (水平或垂直)
+            for (let q of currentQuestions) {
+                let placed = false;
+                let attempts = 0;
+                
+                while (!placed && attempts < 100) {
+                    attempts++;
+                    // 隨機決定方向: 0 為水平(由左至右), 1 為垂直(由上至下)
+                    const isHorizontal = Math.random() < 0.5;
+                    const len = q.idiom.length;
+                    
+                    let startX, startY;
+                    if (isHorizontal) {
+                        startX = Math.floor(Math.random() * (GRID_SIZE - len + 1));
+                        startY = Math.floor(Math.random() * GRID_SIZE);
+                    } else {
+                        startX = Math.floor(Math.random() * GRID_SIZE);
+                        startY = Math.floor(Math.random() * (GRID_SIZE - len + 1));
+                    }
+                    
+                    // 檢查是否可以放置 (確保完全沒有重疊，以保證顏色顯示獨立)
+                    let canPlace = true;
+                    for (let i = 0; i < len; i++) {
+                        let x = isHorizontal ? startX + i : startX;
+                        let y = isHorizontal ? startY : startY + i;
+                        
+                        if (gridData[y][x] !== null) {
+                            canPlace = false;
+                            break;
+                        }
+                    }
+                    
+                    if (canPlace) {
+                        // 正式放置
+                        q.positions = []; // 記錄該成語在方陣中的位置
+                        for (let i = 0; i < len; i++) {
+                            let x = isHorizontal ? startX + i : startX;
+                            let y = isHorizontal ? startY : startY + i;
+                            
+                            gridData[y][x] = {
+                                char: q.chars[i],
+                                idiomIds: [q.id]
+                            };
+                            q.positions.push({y, x});
+                        }
+                        placed = true;
+                    }
+                }
+            }
+            
+            // 填滿剩下的空格 (用指定題庫相關文字作為干擾字)
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    if (gridData[y][x] === null) {
+                        const randomChar = fillerChars.charAt(Math.floor(Math.random() * fillerChars.length));
+                        gridData[y][x] = {
+                            char: randomChar,
+                            idiomIds: [] // 空陣列代表這是干擾字
+                        };
+                    }
+                }
+            }
+        }
+
+        function renderHearts() {
+            const container = document.getElementById('hearts-container');
+            container.innerHTML = '';
+            for (let i = 0; i < maxHearts; i++) {
+                const heart = document.createElement('i');
+                heart.className = `fa-solid fa-heart heart-icon ${i >= currentHearts ? 'heart-lost' : ''}`;
+                heart.id = `heart-${i}`;
+                container.appendChild(heart);
+            }
+        }
+
+        function renderGrid() {
+            const board = document.getElementById('grid-board');
+            board.innerHTML = '';
+            gridCells = [];
+            
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cellData = gridData[y][x];
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+                    cell.textContent = cellData.char;
+                    // 儲存資料在 DOM 上方便存取
+                    cell.dataset.y = y;
+                    cell.dataset.x = x;
+                    cell.dataset.idiomIds = JSON.stringify(cellData.idiomIds);
+                    
+                    cell.addEventListener('click', () => handleCellClick(cell, cellData));
+                    
+                    board.appendChild(cell);
+                    gridCells.push(cell); // 儲存參考
+                }
+            }
+        }
+
+        function renderSituations() {
+            const board = document.getElementById('situations-board');
+            board.innerHTML = '';
+            
+            // 打亂情境選項的順序 (只顯示不重複的情境)
+            const shuffledSituations = [...currentSituations].sort(() => 0.5 - Math.random());
+            
+            shuffledSituations.forEach(sit => {
+                const btn = document.createElement('button');
+                btn.className = 'situation-btn py-4 px-2 rounded-lg flex flex-col items-center justify-center';
+                btn.textContent = sit.name;
+                btn.dataset.situation = sit.name; // 改為記錄情境名稱
+                
+                btn.addEventListener('click', () => handleSituationClick(btn, sit.name));
+                
+                board.appendChild(btn);
+            });
+        }
+
+        function handleCellClick(cell, cellData) {
+            // 已經配對成功、或者該格子已經點錯失效，或者遊戲結束，不反應
+            if (cell.classList.contains('matched') || cell.classList.contains('disabled') || currentHearts <= 0) return;
+            
+            const ids = JSON.parse(cell.dataset.idiomIds);
+            
+            if (ids.length === 0) {
+                // 點到干擾字 -> 錯誤！
+                playWrongSound();
+                
+                // 套用字體變暗 (disabled) 並短暫顯示叉叉 (show-cross)
+                cell.classList.add('disabled', 'show-cross');
+                // 1秒後移除叉叉，但保留 disabled 狀態不可再點選
+                setTimeout(() => {
+                    cell.classList.remove('show-cross');
+                }, 1000);
+
+                loseHeart();
+            } else {
+                // 點到正確的字 -> 找出該字所屬的未配對成語
+                let targetId = ids.find(id => {
+                    const q = currentQuestions.find(cq => cq.id === id);
+                    return q && !q.isMatched;
+                });
+                
+                if (targetId) {
+                    playSelectSound();
+                    selectIdiom(targetId);
+                }
+            }
+        }
+
+        function selectIdiom(id) {
+            // 清除之前的選取狀態 (尚未配對的)
+            gridCells.forEach(cell => {
+                if (!cell.classList.contains('matched')) {
+                    cell.classList.remove('selected-idiom');
+                }
+            });
+            
+            currentlySelectedIdiomId = id;
+            const q = currentQuestions.find(cq => cq.id === id);
+            
+            // 讓整個方陣進入「有選取目標」的狀態，觸發其他格子淡化的 CSS
+            document.getElementById('grid-board').classList.add('has-active-selection');
+            
+            // 點亮該成語的所有字並套用專屬顏色
+            q.positions.forEach(pos => {
+                const index = pos.y * GRID_SIZE + pos.x;
+                const cell = gridCells[index];
+                
+                // 根據該題的獨立顏色，設定 CSS 變數
+                cell.style.setProperty('--idiom-text', q.colorTheme.text);
+                cell.style.setProperty('--idiom-bg', q.colorTheme.bg);
+                cell.style.setProperty('--idiom-border', q.colorTheme.border);
+                
+                cell.classList.add('selected-idiom');
+            });
+            
+            // 讓右側按鈕提示可以點擊
+            document.querySelectorAll('.situation-btn').forEach(btn => {
+                if (!btn.classList.contains('matched')) {
+                    btn.classList.add('ready-to-pair');
+                }
+            });
+        }
+
+        function handleSituationClick(btn, clickedSituationName) {
+            let sitData = currentSituations.find(s => s.name === clickedSituationName);
+            
+            // 如果該情境已經完全配對，或是生命值歸零，不予理會
+            if (sitData.matchCount >= sitData.targetCount || currentHearts <= 0) return;
+            
+            // 必須先在左側選中題辭
+            if (!currentlySelectedIdiomId) {
+                showStatus('請先在左方選出題辭！', 'error');
+                return;
+            }
+            
+            const q = currentQuestions.find(cq => cq.id === currentlySelectedIdiomId);
+            
+            // 檢查配對是否正確
+            if (clickedSituationName === q.situation) {
+                // 配對成功！
+                playCorrectSound();
+                showStatus('正確！', 'success');
+                
+                q.isMatched = true;
+                
+                // 標記左側格子為已配對，並保留專屬顏色
+                q.positions.forEach(pos => {
+                    const index = pos.y * GRID_SIZE + pos.x;
+                    const cell = gridCells[index];
+                    cell.classList.remove('selected-idiom');
+                    cell.classList.add('matched');
+                });
+                
+                // 處理右側情境按鈕的點擊次數與狀態
+                sitData.matchCount++;
+                
+                // 套用對應的顏色變數
+                btn.style.setProperty('--idiom-text', q.colorTheme.text);
+                btn.style.setProperty('--idiom-bg', q.colorTheme.bg);
+                btn.style.setProperty('--idiom-border', q.colorTheme.border);
+
+                btn.classList.remove('ready-to-pair');
+                
+                // 配對成功後，移除方陣的淡化狀態
+                document.getElementById('grid-board').classList.remove('has-active-selection');
+                
+                if (sitData.matchCount < sitData.targetCount) {
+                    // 同情境還有其他題辭，顯示顏色 2 秒後恢復
+                    btn.classList.add('temp-matched');
+                    
+                    setTimeout(() => {
+                        // 確保在 2 秒內沒有被完全配對才移除顏色
+                        if (!btn.classList.contains('matched')) {
+                            btn.classList.remove('temp-matched');
+                            btn.style.removeProperty('--idiom-text');
+                            btn.style.removeProperty('--idiom-bg');
+                            btn.style.removeProperty('--idiom-border');
+                        }
+                    }, 2000);
+                } else {
+                    // 同情境的所有題辭都配對完畢，永久顯示顏色並加上勾勾禁用
+                    btn.classList.remove('temp-matched');
+                    btn.classList.add('matched');
+                    btn.disabled = true;
+                }
+                
+                // 取消其他按鈕的 ready 狀態
+                document.querySelectorAll('.situation-btn').forEach(b => b.classList.remove('ready-to-pair'));
+                
+                currentlySelectedIdiomId = null;
+                matchedCount++;
+                updateProgress();
+                
+                checkWin();
+                
+            } else {
+                // 配對失敗 (選了題辭 A 但點了情境 B)
+                playWrongSound();
+                showStatus('配對錯誤！', 'error');
+                
+                // 取消左側選取並解除淡化狀態
+                document.getElementById('grid-board').classList.remove('has-active-selection');
+                
+                q.positions.forEach(pos => {
+                    const index = pos.y * GRID_SIZE + pos.x;
+                    gridCells[index].classList.remove('selected-idiom');
+                });
+                
+                document.querySelectorAll('.situation-btn').forEach(b => b.classList.remove('ready-to-pair'));
+                currentlySelectedIdiomId = null;
+                
+                loseHeart();
+            }
+        }
+
+        function loseHeart() {
+            if (currentHearts > 0) {
+                currentHearts--;
+                const heartIcon = document.getElementById(`heart-${currentHearts}`);
+                if (heartIcon) {
+                    heartIcon.classList.add('heart-lost');
+                    // 稍微震動一下
+                    heartIcon.classList.add('heart-beat-anim');
+                    setTimeout(() => heartIcon.classList.remove('heart-beat-anim'), 500);
+                }
+                
+                if (currentHearts === 0) {
+                    gameOver();
+                }
+            }
+        }
+
+        function showStatus(text, type) {
+            const statusMsg = document.getElementById('status-message');
+            statusMsg.textContent = text;
+            statusMsg.className = `text-xl font-bold absolute left-1/2 transform -translate-x-1/2 transition-opacity duration-300 opacity-100 ${type === 'success' ? 'text-green-600' : 'text-red-500'}`;
+            
+            setTimeout(() => {
+                statusMsg.classList.remove('opacity-100');
+                statusMsg.classList.add('opacity-0');
+            }, 1500);
+        }
+
+        function updateProgress() {
+            document.getElementById('progress-text').textContent = `${matchedCount}/${TOTAL_QUESTIONS}`;
+        }
+
         function gameOver() {
             stopTimer();
             Swal.fire({
@@ -262,7 +924,18 @@
                 setTimeout(() => {
                     showReviewScreen();
                 }, 3000);
-<!-- ... existing code ... -->
+                
+                Swal.fire({
+                    title: '過關！',
+                    text: '即將進入總複習...',
+                    icon: 'success',
+                    timer: 3000,
+                    showConfirmButton: false,
+                    backdrop: `rgba(0,0,0,0.4)`
+                });
+            }
+        }
+
         function showReviewScreen() {
             document.getElementById('game-container').style.display = 'none';
             document.getElementById('review-container').style.display = 'flex';
