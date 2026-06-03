@@ -187,8 +187,15 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- 新增：背景音樂播放器 (使用 soaringbgm.mp3) -->
+    <!-- 背景音樂播放器 -->
     <audio id="bgm-player" src="soaringbgm.mp3" loop preload="auto"></audio>
+
+    <!-- 靜音開關按鈕 (放置於首頁右上角) -->
+    <div class="absolute top-4 right-4 z-50">
+        <button id="btn-toggle-bgm-home" class="bg-white/80 backdrop-blur p-3 rounded-full shadow-md text-blue-500 hover:text-blue-600 transition-colors" title="開關音樂">
+            <i class="fa-solid fa-music text-xl"></i>
+        </button>
+    </div>
 
     <!-- 首頁設定畫面 -->
     <div id="start-screen" class="flex-grow flex items-center justify-center p-4">
@@ -229,7 +236,7 @@
         <div class="bg-white shadow-sm p-4 flex justify-between items-center z-10 relative">
             <div class="text-lg font-bold text-slate-700 flex items-center gap-4">
                 <span>進度: <span id="progress-text" class="text-blue-600">0/8</span></span>
-                <button id="btn-toggle-bgm" class="text-slate-400 hover:text-blue-500 transition-colors" title="開關音樂">
+                <button id="btn-toggle-bgm" class="text-blue-500 hover:text-blue-600 transition-colors" title="開關音樂">
                     <i class="fa-solid fa-music"></i>
                 </button>
             </div>
@@ -387,24 +394,55 @@
         let timerInterval = null;
         let timeElapsedInSeconds = 0;
 
-        // BGM 變數
+        // BGM 變數與控制
         let isBgmEnabled = true;
+        let bgmHasStarted = false; // 紀錄音樂是否已經開始過
         const bgmPlayer = document.getElementById('bgm-player');
-        bgmPlayer.volume = 0.3; // 音量大小 (0.0 ~ 1.0) 可以依需求微調
+        bgmPlayer.volume = 0.3;
 
+        // 首頁背景音樂自動播放機制 (等待任何互動)
+        function initAutoPlay() {
+            if (bgmHasStarted || !isBgmEnabled) return;
+            
+            let playPromise = bgmPlayer.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    bgmHasStarted = true;
+                    // 成功播放後，移除監聽器
+                    ['click', 'touchstart', 'keydown', 'input'].forEach(evt => {
+                        document.removeEventListener(evt, initAutoPlay);
+                    });
+                }).catch(error => {
+                    // 如果還是被擋，就安靜地繼續等待下一次互動
+                });
+            }
+        }
+
+        // 監聽各種使用者可能的互動來觸發音樂
+        ['click', 'touchstart', 'keydown', 'input'].forEach(evt => {
+            document.addEventListener(evt, initAutoPlay);
+        });
+
+        // 手動開關音樂按鈕邏輯
         function toggleBGM() {
             isBgmEnabled = !isBgmEnabled;
-            const btnIcon = document.querySelector('#btn-toggle-bgm i');
+            const btnIcon1 = document.querySelector('#btn-toggle-bgm i');
+            const btnIcon2 = document.querySelector('#btn-toggle-bgm-home i');
+            
             if (isBgmEnabled) {
-                btnIcon.className = 'fa-solid fa-music text-blue-500';
-                if (timerInterval) bgmPlayer.play(); // 若遊戲進行中則播放
+                if(btnIcon1) btnIcon1.className = 'fa-solid fa-music text-blue-500';
+                if(btnIcon2) btnIcon2.className = 'fa-solid fa-music text-blue-500';
+                bgmPlayer.play().catch(e=>{});
+                bgmHasStarted = true;
             } else {
-                btnIcon.className = 'fa-solid fa-music text-slate-400';
+                if(btnIcon1) btnIcon1.className = 'fa-solid fa-music text-slate-400';
+                if(btnIcon2) btnIcon2.className = 'fa-solid fa-music text-slate-400';
                 bgmPlayer.pause();
             }
         }
 
         document.getElementById('btn-toggle-bgm').addEventListener('click', toggleBGM);
+        document.getElementById('btn-toggle-bgm-home').addEventListener('click', toggleBGM);
         
         // 音效系統 (用來播放選對、選錯的音效)
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -441,11 +479,29 @@
             maxHearts = parseInt(e.target.value);
         });
 
-        // 開始按鈕事件
-        document.getElementById('btn-start').addEventListener('click', startGame);
+        // 綁定「開始遊戲」按鈕事件
+        document.getElementById('btn-start').addEventListener('click', () => {
+            playerName = document.getElementById('player-name').value.trim();
+            if (!playerName) {
+                Swal.fire({ icon: 'warning', title: '請輸入姓名', text: '請輸入挑戰者姓名才能開始遊戲！' });
+                return;
+            }
+
+            // 確保音樂有在播放
+            if (isBgmEnabled && bgmPlayer.paused) {
+                bgmPlayer.play().catch(e=>{});
+            }
+
+            startGame(); // 執行遊戲初始化
+            // 隱藏首頁的音樂按鈕
+            document.getElementById('btn-toggle-bgm-home').style.display = 'none';
+        });
+        
         document.getElementById('btn-restart').addEventListener('click', () => {
             document.getElementById('review-container').style.display = 'none';
             document.getElementById('start-screen').style.display = 'flex';
+            document.getElementById('btn-toggle-bgm-home').style.display = 'block';
+            if (isBgmEnabled) bgmPlayer.play().catch(e=>{});
         });
 
         // 排行榜相關事件
@@ -456,17 +512,6 @@
         document.getElementById('btn-clear-leaderboard').addEventListener('click', clearLeaderboard);
 
         function startGame() {
-            playerName = document.getElementById('player-name').value.trim();
-            if (!playerName) {
-                Swal.fire({ icon: 'warning', title: '請輸入姓名', text: '請輸入挑戰者姓名才能開始遊戲！' });
-                return;
-            }
-
-            // 啟動 BGM
-            if (isBgmEnabled) {
-                bgmPlayer.play().catch(e => console.log("等待互動以播放音樂"));
-            }
-
             // 初始化變數
             currentHearts = maxHearts;
             matchedCount = 0;
@@ -884,6 +929,7 @@
                 // 失敗直接回首頁
                 document.getElementById('game-container').style.display = 'none';
                 document.getElementById('start-screen').style.display = 'flex';
+                document.getElementById('btn-toggle-bgm-home').style.display = 'block';
             });
         }
 
