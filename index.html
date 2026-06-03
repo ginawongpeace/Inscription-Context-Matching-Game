@@ -187,19 +187,20 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- 背景音樂播放器 -->
-    <audio id="bgm-player" src="soaringbgm.mp3" loop preload="auto"></audio>
+    <!-- 背景音樂播放器 - 直接連結到您 GitHub 上發布的檔案 -->
+    <audio id="bgm-player" src="https://ginawongpeace.github.io/Inscription-Context-Matching-Game/soaringbgm.mp3" loop preload="auto"></audio>
 
-    <!-- 靜音開關按鈕 (放置於首頁右上角) -->
+    <!-- 首頁專用：帶有文字提示的開關按鈕 -->
     <div class="absolute top-4 right-4 z-50">
-        <button id="btn-toggle-bgm-home" class="bg-white/80 backdrop-blur p-3 rounded-full shadow-md text-blue-500 hover:text-blue-600 transition-colors" title="開關音樂">
-            <i class="fa-solid fa-music text-xl"></i>
+        <button id="btn-toggle-bgm-home" class="btn-toggle-bgm bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-md transition-colors flex items-center gap-2 border border-slate-200 hover:bg-slate-50" title="點擊開關音樂">
+            <i class="fa-solid fa-volume-xmark bgm-icon text-slate-400 text-lg"></i>
+            <span class="bgm-text font-bold text-slate-400 text-sm tracking-widest">音樂：關</span>
         </button>
     </div>
 
     <!-- 首頁設定畫面 -->
     <div id="start-screen" class="flex-grow flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
+        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center mt-10">
             <h1 class="text-3xl font-bold text-slate-800 mb-6">題辭與情境配對</h1>
             <p class="text-slate-600 mb-8">從左側方陣中找出正確的題辭，並與右側的情境配對！</p>
             
@@ -236,8 +237,10 @@
         <div class="bg-white shadow-sm p-4 flex justify-between items-center z-10 relative">
             <div class="text-lg font-bold text-slate-700 flex items-center gap-4">
                 <span>進度: <span id="progress-text" class="text-blue-600">0/8</span></span>
-                <button id="btn-toggle-bgm" class="text-blue-500 hover:text-blue-600 transition-colors" title="開關音樂">
-                    <i class="fa-solid fa-music"></i>
+                <!-- 遊戲頁專用：帶有文字提示的開關按鈕 -->
+                <button id="btn-toggle-bgm" class="btn-toggle-bgm flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-200 shadow-sm" title="點擊開關音樂">
+                    <i class="fa-solid fa-volume-xmark bgm-icon text-slate-400"></i>
+                    <span class="bgm-text font-bold text-slate-400 text-sm tracking-wide">音樂：關</span>
                 </button>
             </div>
             <div id="status-message" class="text-xl font-bold text-slate-800 absolute left-1/2 transform -translate-x-1/2 opacity-0 transition-opacity duration-300">
@@ -250,7 +253,6 @@
 
         <!-- 遊戲主要內容區 (左右分欄) -->
         <div class="flex-grow flex flex-col lg:flex-row p-4 gap-6 max-w-7xl mx-auto w-full items-center justify-center">
-            
             <!-- 左側：8x8 文字方陣 -->
             <div class="w-full lg:w-1/2 max-w-lg aspect-square">
                 <div id="grid-board" class="w-full h-full grid grid-cols-8 grid-rows-8 gap-1 bg-white p-2 rounded-xl shadow-lg border border-slate-200">
@@ -394,55 +396,79 @@
         let timerInterval = null;
         let timeElapsedInSeconds = 0;
 
-        // BGM 變數與控制
-        let isBgmEnabled = true;
-        let bgmHasStarted = false; // 紀錄音樂是否已經開始過
+        // BGM 變數與控制 (全面優化版)
         const bgmPlayer = document.getElementById('bgm-player');
         bgmPlayer.volume = 0.3;
+        let userWantsBgm = true; // 記錄使用者的意願，預設為想聽音樂
 
-        // 首頁背景音樂自動播放機制 (等待任何互動)
-        function initAutoPlay() {
-            if (bgmHasStarted || !isBgmEnabled) return;
-            
-            let playPromise = bgmPlayer.play();
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    bgmHasStarted = true;
-                    // 成功播放後，移除監聽器
-                    ['click', 'touchstart', 'keydown', 'input'].forEach(evt => {
-                        document.removeEventListener(evt, initAutoPlay);
-                    });
-                }).catch(error => {
-                    // 如果還是被擋，就安靜地繼續等待下一次互動
+        // 這個函數會嚴格根據播放器的「真實狀態」來更新按鈕畫面，不會再騙人
+        function updateBgmUI(isPlaying) {
+            const icons = document.querySelectorAll('.bgm-icon');
+            const texts = document.querySelectorAll('.bgm-text');
+
+            if (isPlaying) {
+                // 音樂正在播放：顯示藍色、開啟文字、音符圖標
+                icons.forEach(i => i.className = 'fa-solid fa-music bgm-icon text-blue-500');
+                texts.forEach(t => {
+                    t.textContent = '音樂：開';
+                    t.classList.remove('text-slate-400');
+                    t.classList.add('text-blue-500');
+                });
+            } else {
+                // 音樂暫停中：顯示灰色、關閉文字、靜音圖標
+                icons.forEach(i => i.className = 'fa-solid fa-volume-xmark bgm-icon text-slate-400');
+                texts.forEach(t => {
+                    t.textContent = '音樂：關';
+                    t.classList.remove('text-blue-500');
+                    t.classList.add('text-slate-400');
                 });
             }
         }
 
-        // 監聽各種使用者可能的互動來觸發音樂
-        ['click', 'touchstart', 'keydown', 'input'].forEach(evt => {
-            document.addEventListener(evt, initAutoPlay);
+        // 讓按鈕的畫面「永遠」綁定真實的音樂狀態
+        bgmPlayer.addEventListener('play', () => updateBgmUI(true));
+        bgmPlayer.addEventListener('pause', () => updateBgmUI(false));
+
+        // 綁定兩顆開關音樂按鈕的點擊事件
+        document.querySelectorAll('.btn-toggle-bgm').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // 防止點擊按鈕時觸發背景的全域自動播放
+                if (bgmPlayer.paused) {
+                    userWantsBgm = true;
+                    bgmPlayer.play().catch(error => {
+                        // 如果音樂檔案真的有問題，會跳出土司提示告訴老師
+                        Swal.fire({
+                            toast: true, position: 'top', icon: 'error', 
+                            title: '無法播放音樂', text: '請確認音樂檔案已上傳至 GitHub',
+                            showConfirmButton: false, timer: 4000
+                        });
+                        console.warn("播放失敗:", error);
+                    });
+                } else {
+                    userWantsBgm = false;
+                    bgmPlayer.pause();
+                }
+            });
         });
 
-        // 手動開關音樂按鈕邏輯
-        function toggleBGM() {
-            isBgmEnabled = !isBgmEnabled;
-            const btnIcon1 = document.querySelector('#btn-toggle-bgm i');
-            const btnIcon2 = document.querySelector('#btn-toggle-bgm-home i');
-            
-            if (isBgmEnabled) {
-                if(btnIcon1) btnIcon1.className = 'fa-solid fa-music text-blue-500';
-                if(btnIcon2) btnIcon2.className = 'fa-solid fa-music text-blue-500';
-                bgmPlayer.play().catch(e=>{});
-                bgmHasStarted = true;
-            } else {
-                if(btnIcon1) btnIcon1.className = 'fa-solid fa-music text-slate-400';
-                if(btnIcon2) btnIcon2.className = 'fa-solid fa-music text-slate-400';
-                bgmPlayer.pause();
+        // 全域自動播放機制 (只要使用者點擊畫面的任何地方，就嘗試突破瀏覽器封鎖)
+        function tryAutoPlayBGM() {
+            if (userWantsBgm && bgmPlayer.paused) {
+                bgmPlayer.play().then(() => {
+                    // 只要成功播放一次，就不用再到處監聽點擊了
+                    ['click', 'touchstart', 'keydown'].forEach(evt => {
+                        document.removeEventListener(evt, tryAutoPlayBGM);
+                    });
+                }).catch(() => {
+                    // 如果還是被瀏覽器擋，就繼續安靜等待下一次點擊
+                });
             }
         }
 
-        document.getElementById('btn-toggle-bgm').addEventListener('click', toggleBGM);
-        document.getElementById('btn-toggle-bgm-home').addEventListener('click', toggleBGM);
+        // 綁定全域監聽器
+        ['click', 'touchstart', 'keydown'].forEach(evt => {
+            document.addEventListener(evt, tryAutoPlayBGM);
+        });
         
         // 音效系統 (用來播放選對、選錯的音效)
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -480,18 +506,14 @@
         });
 
         // 綁定「開始遊戲」按鈕事件
-        document.getElementById('btn-start').addEventListener('click', () => {
+        document.getElementById('btn-start').addEventListener('click', (e) => {
             playerName = document.getElementById('player-name').value.trim();
             if (!playerName) {
                 Swal.fire({ icon: 'warning', title: '請輸入姓名', text: '請輸入挑戰者姓名才能開始遊戲！' });
                 return;
             }
 
-            // 確保音樂有在播放
-            if (isBgmEnabled && bgmPlayer.paused) {
-                bgmPlayer.play().catch(e=>{});
-            }
-
+            // 在點擊開始遊戲的瞬間，必定會觸發一次 tryAutoPlayBGM (因為事件冒泡)
             startGame(); // 執行遊戲初始化
             // 隱藏首頁的音樂按鈕
             document.getElementById('btn-toggle-bgm-home').style.display = 'none';
@@ -500,8 +522,7 @@
         document.getElementById('btn-restart').addEventListener('click', () => {
             document.getElementById('review-container').style.display = 'none';
             document.getElementById('start-screen').style.display = 'flex';
-            document.getElementById('btn-toggle-bgm-home').style.display = 'block';
-            if (isBgmEnabled) bgmPlayer.play().catch(e=>{});
+            document.getElementById('btn-toggle-bgm-home').style.display = 'flex'; // 恢復首頁按鈕
         });
 
         // 排行榜相關事件
@@ -552,7 +573,11 @@
         function stopTimer() {
             clearInterval(timerInterval);
             timerInterval = null;
-            bgmPlayer.pause(); // 遊戲結束暫停音樂
+            if (userWantsBgm) {
+                bgmPlayer.pause(); // 遊戲結束暫停音樂
+                // 暫停後 UI 會自動更新為關閉，但為了讓使用者知道可以重開，設定 userWantsBgm 為 false
+                userWantsBgm = false; 
+            }
         }
         
         function updateTimerDisplay() {
@@ -929,7 +954,7 @@
                 // 失敗直接回首頁
                 document.getElementById('game-container').style.display = 'none';
                 document.getElementById('start-screen').style.display = 'flex';
-                document.getElementById('btn-toggle-bgm-home').style.display = 'block';
+                document.getElementById('btn-toggle-bgm-home').style.display = 'flex';
             });
         }
 
